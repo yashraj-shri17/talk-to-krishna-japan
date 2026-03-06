@@ -503,12 +503,24 @@ import os
 DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://neondb_owner:npg_AIJCOKgs6hN4@ep-twilight-field-ail5wonj-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require")
 
 def get_db_connection():
-    try:
-        conn = psycopg2.connect(DATABASE_URL)
-        return conn
-    except Exception as e:
-        print(f"Database connection error: {e}")
-        raise e
+    max_retries = 5
+    base_delay = 1
+    
+    for attempt in range(max_retries):
+        try:
+            conn = psycopg2.connect(DATABASE_URL)
+            return conn
+        except psycopg2.OperationalError as e:
+            if attempt == max_retries - 1:
+                print(f"Database connection error (Failed after {max_retries} attempts): {e}")
+                raise e
+            
+            sleep_time = base_delay * (2 ** attempt)
+            print(f"Database connection transient error: {e}. Retrying in {sleep_time} seconds (Attempt {attempt + 1}/{max_retries})")
+            time.sleep(sleep_time)
+        except Exception as e:
+            print(f"Unexpected database connection error: {e}")
+            raise e
 
 # Rate limiting setup
 login_attempts = defaultdict(list)
