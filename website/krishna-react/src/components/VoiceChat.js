@@ -118,6 +118,40 @@ function VoiceChat() {
         };
     }, [unlockAudio]);
 
+    // Fetch conversation history
+    useEffect(() => {
+        const fetchHistory = async () => {
+            if (user?.id) {
+                try {
+                    const res = await axios.get(`${API_ENDPOINTS.HISTORY}?user_id=${user.id}`);
+                    if (res.data.success && res.data.history) {
+                        const loadedMessages = [];
+                        res.data.history.forEach((h, i) => {
+                            loadedMessages.push({
+                                id: `user_${i}`,
+                                type: 'user',
+                                text: h.question,
+                                timestamp: h.timestamp
+                            });
+                            loadedMessages.push({
+                                id: `krishna_${i}`,
+                                type: 'krishna',
+                                text: h.answer,
+                                timestamp: h.timestamp
+                            });
+                        });
+                        if (loadedMessages.length > 0) {
+                            setMessages(loadedMessages);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to load history:", e);
+                }
+            }
+        };
+        fetchHistory();
+    }, [user?.id]);
+
     const speakText = useCallback(async (text, messageId = null, audioUrl = null) => {
         if ((isSpeaking) && activeMessageId === messageId && messageId !== null) {
             stopAudio();

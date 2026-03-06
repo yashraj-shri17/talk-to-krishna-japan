@@ -398,9 +398,17 @@ Give a direct, practical answer based on the Gita, specific to this exact questi
 
             logger.info(f"✓ [{tone.upper()}] answer generated: {len(answer_text)} chars")
 
+            # Extract chosen Shloka ID
+            chosen_shloka_id = None
+            # e.g., "अध्याय 2, श्लोक 47" or "अध्याय 2, श्लोक 3"
+            shloka_match = re.search(r'अध्याय\s*(\d+)\s*,\s*श्लोक\s*(\d+)', answer_text)
+            if shloka_match:
+                chosen_shloka_id = f"{shloka_match.group(1)}.{shloka_match.group(2)}"
+
             return {
                 'answer': answer_text,
                 'shlokas': retrieved_shlokas,
+                'chosen_shloka_id': chosen_shloka_id,
                 'llm_used': True,
                 'tone': tone
             }

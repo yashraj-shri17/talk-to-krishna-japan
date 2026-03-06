@@ -122,8 +122,9 @@ function MessageHistory({ messages, isOpen, onClose, onClearHistory, onSpeak, ac
                                     <span className="message-time">
                                         {(() => {
                                             try {
-                                                const date = message.timestamp instanceof Date ? message.timestamp : new Date(message.timestamp);
-                                                return date.toLocaleTimeString('en-US', {
+                                                const date = message.timestamp instanceof Date ? message.timestamp : new Date(message.timestamp + 'Z'); // Add Z to make timestamp UTC before IST conversion if missing
+                                                return date.toLocaleTimeString('en-IN', {
+                                                    timeZone: 'Asia/Kolkata',
                                                     hour: '2-digit',
                                                     minute: '2-digit'
                                                 });
