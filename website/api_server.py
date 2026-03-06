@@ -67,12 +67,34 @@ async def _generate_multi_voice_audio(text: str, buffer: io.BytesIO):
     if current_text_lines:
         segments.append((current_voice, "\n".join(current_text_lines)))
         
-    # Generate audio for each segment and append to buffer
+    # Refine segments to isolate "Chapter X Shloka Y" for English pronunciation
+    refined_segments = []
     for voice, segment_text in segments:
         if not segment_text.strip():
             continue
             
-        # Slightly faster rate for Japanese, normal for Sanskrit/Hindi
+        # Split text, capturing "Chapter X, Shloka Y"
+        parts = re.split(r'(?i)(Chapter\s+\d+(?:[\s,]*Shloka\s+\d+)?)', segment_text)
+        
+        for part in parts:
+            if not part.strip():
+                # If it's just whitespace, we can append it with the current voice or skip
+                if part:
+                    refined_segments.append((voice, part))
+                continue
+                
+            # If this part is the English chapter/shloka reference, use English voice
+            if re.match(r'(?i)^Chapter\s+\d+', part.strip()):
+                refined_segments.append(("en-IN-PrabhatNeural", part))
+            else:
+                refined_segments.append((voice, part))
+
+    # Generate audio for each segment and append to buffer
+    for voice, segment_text in refined_segments:
+        if not segment_text.strip():
+            continue
+            
+        # Slightly faster rate for Japanese, normal for Sanskrit/Hindi/English
         rate = "+10%" if "ja-JP" in voice else "+0%"
         
         clean_segment = segment_text[:40].replace('\n', ' ')
