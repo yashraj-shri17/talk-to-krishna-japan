@@ -6,49 +6,76 @@ function MessageHistory({ messages, isOpen, onClose, onClearHistory, onSpeak, ac
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
     const formatMessage = (text) => {
-        const lines = text.split('\n');
-        let formatted = [];
-        let shlokaLines = [];
+        const lines = text.split('\n').map(l => l.trim()).filter(l => l !== '');
 
-        lines.forEach((line, index) => {
-            const trimmedLine = line.trim();
-            // Detect Shloka lines: contains Devanagari/Pipe dandas OR is a citation line
-            const isShlokaDanda = line.match(/[।॥|‖]/);
-            const isCitation = trimmedLine.startsWith('भगवद गीता') ||
-                trimmedLine.startsWith('Bhagavad Gita') ||
-                trimmedLine.includes('シュローカ') ||
-                trimmedLine.includes('ギーター');
+        let parts = { opening: [], shloka: [], explanation: [], steps: [] };
+        let currentState = 'opening';
 
-            if (isShlokaDanda || isCitation) {
-                shlokaLines.push(line);
-            } else {
-                if (shlokaLines.length > 0) {
-                    formatted.push(
-                        <div key={`shloka-${index}`} className="shloka">
-                            {shlokaLines.map((sl, i) => (
-                                <div key={i}>{sl}</div>
-                            ))}
-                        </div>
-                    );
-                    shlokaLines = [];
+        lines.forEach((line) => {
+            // Transition to Shloka
+            if (currentState === 'opening' && (line.includes('भगवद गीता') || line.includes('Bhagavad Gita') || line.includes('シュローカ') || line.includes('ギーター') || line.includes('Chapter'))) {
+                currentState = 'shloka';
+                parts.shloka.push(line);
+                return;
+            }
+
+            // Transition to Explanation
+            if (currentState === 'shloka') {
+                const isShlokaLine = line.match(/[।॥|‖]/) || line.includes('Chapter') || line.includes('भगवद गीता') || line.includes('Bhagavad Gita') || line.includes('シュローカ') || line.includes('ギーター');
+                if (!isShlokaLine && line.length > 0) {
+                    // Try to guess if it's still Sanskrit based on Devanagari chars without dandas
+                    const hasDevanagari = /[\u0900-\u097F]/.test(line);
+                    if (!hasDevanagari) {
+                        currentState = 'explanation';
+                        parts.explanation.push(line);
+                        return;
+                    }
                 }
-                if (trimmedLine) {
-                    formatted.push(<p key={index}>{line}</p>);
+            }
+
+            // Transition to Steps
+            if (currentState === 'explanation') {
+                if (line.endsWith('：') || line.endsWith(':') || /^\d+\./.test(line) || /^[１-９]．/.test(line)) {
+                    currentState = 'steps';
+                    parts.steps.push(line);
+                    return;
                 }
+            }
+
+            if (parts[currentState]) {
+                parts[currentState].push(line);
             }
         });
 
-        if (shlokaLines.length > 0) {
-            formatted.push(
-                <div key="shloka-end" className="shloka">
-                    {shlokaLines.map((sl, i) => (
-                        <div key={i}>{sl}</div>
-                    ))}
-                </div>
-            );
+        // Fallback if parsing failed completely or it's a short text (e.g. user messages)
+        if (parts.shloka.length === 0 && parts.explanation.length === 0 && parts.steps.length === 0) {
+            return <div className="message-box general-box">{lines.map((l, i) => <p key={i}>{l}</p>)}</div>;
         }
 
-        return formatted;
+        return (
+            <div className="four-part-message">
+                {parts.opening.length > 0 && (
+                    <div className="message-box opening-box">
+                        {parts.opening.map((l, i) => <p key={i}>{l}</p>)}
+                    </div>
+                )}
+                {parts.shloka.length > 0 && (
+                    <div className="message-box shloka-box">
+                        {parts.shloka.map((l, i) => <div key={i} className="shloka-line">{l}</div>)}
+                    </div>
+                )}
+                {parts.explanation.length > 0 && (
+                    <div className="message-box explanation-box">
+                        {parts.explanation.map((l, i) => <p key={i}>{l}</p>)}
+                    </div>
+                )}
+                {parts.steps.length > 0 && (
+                    <div className="message-box steps-box">
+                        {parts.steps.map((l, i) => <p key={i}>{l}</p>)}
+                    </div>
+                )}
+            </div>
+        );
     };
 
     const handleClearHistory = () => {
