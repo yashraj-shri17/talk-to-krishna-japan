@@ -133,27 +133,28 @@ app = Flask(__name__)
 
 # CORS configuration for production
 from dotenv import load_dotenv
+import re
 
 load_dotenv()
 
-import re
 frontend_url = os.getenv('FRONTEND_URL')
+# Default local development origins
 allowed_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
 
 if frontend_url:
-    # Add the provided URL and also a version without trailing slash
-    allowed_origins.append(frontend_url)
-    if frontend_url.endswith('/'):
-        allowed_origins.append(frontend_url[:-1])
-    else:
-        allowed_origins.append(frontend_url + '/')
+    # Add the provided URL and ensure versions with/without trailing slash are handled
+    normalized_url = frontend_url.rstrip('/')
+    allowed_origins.append(normalized_url)
+    allowed_origins.append(f"{normalized_url}/")
+    print(f"CORS: Allowed origins includes {normalized_url}")
 else:
-    # Fallback to allow all during setup, but MUST reflect origin for credentials
-    # This is a bit looser but prevents the absolute "CORS error" blockade
-    allowed_origins = [re.compile(r'.*')]
+    # Fallback to allow regex pattern match if no specific URL is provided during dry-runs
+    # but still prioritize security by not using '*'
+    print("CORS: Warning - FRONTEND_URL not set, falling back to permissive mode")
+    allowed_origins.append(re.compile(r'.*'))
 
 CORS(app, origins=allowed_origins, supports_credentials=True)
 

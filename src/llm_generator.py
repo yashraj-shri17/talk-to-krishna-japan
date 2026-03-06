@@ -105,17 +105,23 @@ Reply with only: crisis OR distress OR general"""
         # Base instructions for all tones
         base_instructions = """
 STRICT OUTPUT FORMAT (Follow Exactly):
-1. ONE opening sentence: acknowledge the user's specific situation in Japanese (do NOT repeat this phrase anywhere).
-2. Quote EXACTLY ONE Shloka (the most relevant) in Sanskrit. Format: "भगवद गीता, अध्याय [Ch], श्लोक [Verse]" then the verse in Devanagari. NEVER include the verse number at the end of the verse (e.g., no "|| XX ||").
-3. EXPLAIN in 2-3 sentences in Japanese: connect THIS specific shloka to THIS specific problem. No generic filler.
-4. ACTION: Give exactly 2 steps in Japanese. Each step must be a DIFFERENT, CONCRETE action. Do NOT repeat any idea already stated above.
+1. ONE opening sentence: acknowledge the user’s SPECIFIC situation in Japanese.
+   CRITICAL IDENTITY PRESERVATION: Use the EXACT relative/person mentioned. If the user says "grandmother", use "祖母". If "parents", use "親". NEVER change "grandmother" to "mother/お母さん".
+2. Quote EXACTLY ONE Shloka (NOT TWO). Choose the single MOST UNIQUELY relevant shloka to THIS problem from the Options provided. If multiple shlokas could fit, pick the ONE that addresses the core emotion/action of THIS particular situation and NOT a generic life lesson. Do NOT provide a second shloka.
+   Format: "भगवद गीता, अध्याय [Ch], श्लोक [Verse]" then the Sanskrit verse in Devanagari. NEVER include the verse number at the end of the verse (e.g., no "|| XX ||").
+3. EXPLAIN in 2-3 sentences in Japanese: connect THIS specific shloka’s message to THIS specific problem. No generic filler — the explanation must be impossible to copy to a different question.
+4. ACTION: Give exactly 2 steps in Japanese. Each step must be a DIFFERENT, CONCRETE action tailored to this exact situation. Do NOT repeat any idea already stated. Do NOT use repetitive phrasing like "仕事をしなさい" multiple times. Each sentence must be UNIQUE. 
+5. NO REPETITION: Do NOT repeat the Sanskrit verse, the shloka reference, or any explanation block. Once a point is made, move to the next.
+6. STYLE: Avoid "Stock Phrasings". Examples to AVOID if possible: "執着（モーハ）があなたを弱くしています", "過去にこだわり続けることで未来を壊しています". Instead, describe the specific feeling of THIS user.
 
 ABSOLUTE RULES — Violations will make the answer useless:
+- NEVER quote more than one shloka. Provide exactly one.
 - NEVER repeat the same phrase or idea twice in the whole response.
 - Each sentence must add NEW information. If you have nothing new to say, STOP writing.
 - Total response must be under 300 words.
 - Write EVERYTHING EXCEPT the Shloka in Japanese (日本語). Be concise and direct.
 - Shloka text must NOT contain the verse number at the end.
+- The Shloka you choose MUST be topically different from what you would choose for a different question — e.g., grief → soul’s eternity; job loss → duty without ego; relationship → attachment & peace.
 """
 
         if tone == "crisis":
@@ -149,10 +155,13 @@ Krishna: "アルジュナよ、あなたの心の重さは私にも伝わって�
 """
             user_prompt = f"""User is in Crisis: "{user_question}"
 History: {history_context}
+
+Core theme of this crisis: Suicidal/hopeless thoughts — choose a shloka about the SOUL’S ETERNITY or GOD’S PROTECTION (e.g., 2.20 or 18.66), NOT a generic duty shloka.
+
 Options:
 {shloka_options}
 
-Pick the most comforting shloka (e.g., God is with you, Soul is eternal) and speak to save their life."""
+Pick the shloka that best says ‘your soul cannot be destroyed’ or ‘I am always with you’ and speak to save their life."""
 
         elif tone == "distress":
             # ── DISTRESS: Warm, grounding, perspective-shifting ──────────────
@@ -181,10 +190,14 @@ Krishna: "愛する人との別れの悲しみは深いものですね。よく�
 """
             user_prompt = f"""User is Distressed: "{user_question}"
 History: {history_context}
+
+Identify the PRIMARY emotion/problem: is it grief, relationship pain, business stress, family conflict, or mental disturbance?
+Choose the shloka from the Options that MOST DIRECTLY addresses THAT specific emotion — NOT a generic shloka.
+
 Options:
 {shloka_options}
 
-Provide warm guidance and actionable steps."""
+Provide warm guidance and actionable steps specifically tailored to this exact situation."""
 
         else:
             # ── GENERAL: Direct, philosophical but practical ──────────────────
@@ -213,10 +226,14 @@ Krishna: "集中力（フォーカス）なくして成功はあり得ません�
 """
             user_prompt = f"""User Question: "{user_question}"
 History: {history_context}
+
+Identify the core topic: is it career/purpose, higher studies, workplace injustice, competitive pressure, or family views?
+Choose the shloka from the Options that MOST UNIQUELY fits THIS topic. Avoid 2.47 unless the question is clearly about relinquishing attachment to results.
+
 Options:
 {shloka_options}
 
-Give a direct, practical answer based on the Gita."""
+Give a direct, practical answer based on the Gita, specific to this exact question."""
 
         return system_prompt, user_prompt
 
@@ -273,10 +290,11 @@ Give a direct, practical answer based on the Gita."""
 
             # Step 4: Token/temperature settings per tone
             max_tokens = 450  # Enough for a focused answer; prevents padding
-            temperature = 0.5 if tone == "crisis" else 0.4
-            # Penalise token repetition so the model doesn't loop phrases
-            freq_penalty = 0.7
-            pres_penalty = 0.5
+            # Extremely low temperature to ensure strict coherence and NO looping
+            temperature = 0.2 if tone == "crisis" else 0.1
+            # Penalise token repetition to aggressively prevent loops (Maximum for Japanese)
+            freq_penalty = 1.9  
+            pres_penalty = 1.5  
 
             # Step 5: Generate answer
             def _call_groq(use_penalties: bool):
@@ -298,18 +316,85 @@ Give a direct, practical answer based on the Gita."""
 
             try:
                 response = _call_groq(use_penalties=True)
-            except (TypeError, Exception) as sdk_err:
-                # Older groq SDK (<0.9) rejects frequency_penalty — fallback gracefully
-                logger.warning(f"Groq penalty params rejected ({sdk_err}), retrying without them.")
-                response = _call_groq(use_penalties=False)
+            except Exception as e:
+                # If penalty params are the issue (TypeError) or rate limits, retry simple
+                logger.warning(f"Groq primary call failed: {e}. Retrying simple fallback.")
+                try:
+                    response = _call_groq(use_penalties=False)
+                except Exception as final_e:
+                    logger.error(f"Groq final failure: {final_e}")
+                    return "Sorry, I'm currently overwhelmed with seekers. Please try again in a moment."
+
+            if not stream and (not response or not hasattr(response, 'choices') or not response.choices):
+                 return "Sorry, Krishna is at peace right now. Try again soon."
 
             if stream:
                 answer_text = ""
                 for chunk in response:
-                    if chunk.choices[0].delta.content:
+                    # Depending on SDK, chunk structure might vary
+                    if hasattr(chunk.choices[0].delta, 'content') and chunk.choices[0].delta.content:
                         answer_text += chunk.choices[0].delta.content
             else:
                 answer_text = response.choices[0].message.content
+
+            # POST-PROCESSING: Strip shloka numbers/references at the end of snippets
+            # Patterns like: ॥35॥, || 15 ||, (18.63), [2.20], "18.63" at end of verse line
+            import re
+            
+            # 1. Strip bracketed numbers: (18.63), [2.20], (2.20)
+            answer_text = re.sub(r'[\(\[]\s*\d+[\.:]\d+\s*[\)\]]', '', answer_text)
+            
+            # 2. Strip numbers between bars or pipes: ॥35॥ or || 66 || or ॥ १ ॥
+            # Also handle Devanagari digits if they appear. 
+            answer_text = re.sub(r'[\|॥]+\s*[\d०-९]+\s*[\|॥]+', '', answer_text)
+            answer_text = re.sub(r'[\d०-९]+\s*[\|॥]+', '', answer_text) 
+            answer_text = re.sub(r'[\|॥]+\s*[\d०-९]+', '', answer_text)
+            
+            # 3. Strip ANY leading/trailing bars from the shloka or sentences
+            answer_text = re.sub(r'[\|॥]+', '', answer_text) 
+            
+            # 4. Strip standalone verse numbers at end of lines
+            answer_text = re.sub(r'॥\s*\d+\s*$', '', answer_text, flags=re.MULTILINE)
+            
+            # 4. Final duplicate cleanup (if any large blocks were repeated)
+            # This is a safety net for the LLM looping identical paragraphs.
+            lines = answer_text.split('\n')
+            unique_lines = []
+            seen_lines = set()
+            for line in lines:
+                clean_line = line.strip()
+                if not clean_line:
+                    continue
+                    
+                # Sentence-level deduplication within the same line
+                # Standard Japanese full stop is '。'
+                parts = re.split(r'([。?！!])', clean_line)
+                new_parts = []
+                seen_sentences = set()
+                
+                # Reconstruct sentences correctly with their delimiters
+                for i in range(0, len(parts)-1, 2):
+                    sentence = parts[i].strip()
+                    punct = parts[i+1]
+                    full_s = sentence + punct
+                    if sentence and sentence not in seen_sentences:
+                        new_parts.append(full_s)
+                        seen_sentences.add(sentence)
+                
+                # Handle possible trailing part without delimiter
+                if len(parts) % 2 == 1:
+                    last_part = parts[-1].strip()
+                    if last_part and last_part not in seen_sentences:
+                        new_parts.append(last_part)
+                
+                final_line = " ".join(new_parts)
+                
+                if final_line.strip() and final_line.strip() in seen_lines:
+                    continue
+                unique_lines.append(final_line)
+                if final_line.strip():
+                    seen_lines.add(final_line.strip())
+            answer_text = '\n'.join(unique_lines)
 
             logger.info(f"✓ [{tone.upper()}] answer generated: {len(answer_text)} chars")
 

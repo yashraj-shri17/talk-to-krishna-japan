@@ -262,70 +262,147 @@ Examples:
             # Fallback: Assume relevant
             return {'original': query, 'english': query, 'keywords': query, 'is_relevant': True}
 
-    def _keyword_search(self, query: str, top_k: int = 50) -> List[Tuple[int, float]]:
+    def _keyword_search(self, query: str, top_k: int = 20) -> Tuple[List[Tuple[int, float]], Dict[str, float]]:
         """
-        Enhanced keyword search with:
-        1. Modern Context Mapping (Job, Suicide, Exam -> Specific Shlokas)
-        2. Narrative Filtering (Penalize Sanjay/Dhritarashtra verses)
-        3. Comprehensive Keyword Matching
+        Multilingual keyword search using predefined mapping.
+        Returns Tuple: (List of (index, score), Dict of boosted_shlokas)
         """
         query_lower = query.lower()
-        scores = {}
         
-        # 1. MODERN CONTEXT MAPPING (The "Bridge")
-        # Map modern problems directly to the BEST philosophical shlokas
+        # ── MODERN CONTEXT MAPPING (The Bridge) ──
         modern_mappings = {
-            # CRISIS / DESPAIR
-            # Best shlokas: 6.5 (uplift yourself), 2.3 (rise from despair),
-            #               2.20 (soul is eternal), 18.66 (divine protection)
-            # NOTE: The LLM classifier handles all linguistic variants —
-            #       these are just semantic anchors for the vector search boost.
-            'suicide': ['6.5', '2.3', '2.20', '18.66', '9.22'],
-            'suicidal': ['6.5', '2.3', '2.20', '18.66', '9.22'],
-            'hopeless': ['6.5', '2.3', '18.66', '9.22'],
-            'give up': ['6.5', '2.3', '2.14', '18.66'],
-            'kill myself': ['6.5', '2.3', '2.20', '18.66'],
-            'end my life': ['6.5', '2.3', '2.20', '18.66'],
+            # ── CRISIS / SUICIDAL THOUGHTS ───────────────────────────────────
+            # Primary: 18.66 (surrender), 6.5 (uplift), 2.3 (Rise from weakness)
+            'suicide': ['18.66', '6.5', '2.3', '15.7', '9.22'],
+            'suicidal': ['18.66', '6.5', '2.3', '15.7', '9.22'],
+            'suicidal thoughts': ['18.66', '6.5', '2.3', '15.7', '9.22'],
+            'hopeless': ['18.66', '6.5', '2.3', '9.22'],
+            'give up': ['18.66', '2.3', '6.5', '2.14'],
+            'kill myself': ['18.66', '6.5', '15.7', '2.3'],
+            'end my life': ['18.66', '6.5', '15.7', '2.3'],
+            'want to die': ['18.66', '6.5', '15.7', '2.3'],
+            'end life': ['18.66', '6.5', '15.7', '2.3'],
 
-            # WORK / CAREER / FAILURE
-            'job': ['2.47', '2.48', '3.8', '18.47', '18.48'],
-            'work': ['2.47', '3.8', '3.19', '18.45', '18.46'],
-            'exam': ['2.47', '2.38', '2.14', '6.5'],
-            'fail': ['2.47', '2.38', '2.14', '6.5', '2.50'],
-            'result': ['2.47', '2.55', '18.11', '5.10'],
-            'money': ['2.47', '18.38', '17.20', '16.13'],
+            # ── HIGHER STUDIES / DREAMS BLOCKED BY PARENTS ───────────────────
+            # Primary: 18.63 (act as you decide — free will), 3.35 (follow own path),
+            #          6.1 (action defines a yogi), 18.47 (one's own dharma)
+            'australia': ['18.63', '6.1', '18.47', '3.35', '18.60'],
+            'abroad': ['18.63', '6.1', '18.47', '3.35', '18.60'],
+            'higher studies': ['18.63', '18.47', '3.35', '6.1', '18.60'],
+            'not allowing': ['18.63', '18.47', '6.9', '3.35', '18.60'],
+            'permission': ['18.63', '18.47', '3.35', '6.9'],
+            'allow': ['18.63', '18.47', '3.35', '6.9'],
 
-            # PARENT / FAMILY CONFLICTS
-            'mother': ['3.35', '18.47', '2.47', '2.38', '9.27'],
-            'father': ['3.35', '18.47', '2.47', '2.38', '9.27'],
-            'mummy': ['3.35', '18.47', '2.47', '2.38', '9.27'],
-            'papa': ['3.35', '18.47', '2.47', '2.38', '9.27'],
-            'parents': ['3.35', '18.47', '2.47', '2.38', '9.27'],
-            'family refuse': ['3.35', '18.47', '2.47'],
-            'family against': ['3.35', '18.47', '2.47'],
-            'family conflict': ['3.35', '6.9', '2.47'],
+            # ── BUSINESS LOSS / FINANCIAL DISTRESS ───────────────────────────
+            # Primary: 2.14 (endure pleasure & pain equally), 18.48 (persist in duty),
+            #          2.38 (act without being moved by results), 12.19 (equanimous)
+            'business': ['2.14', '18.48', '12.19', '2.38', '11.33'],
+            'loss': ['2.14', '18.48', '12.19', '2.38', '6.36'],
+            'business loss': ['2.14', '18.48', '2.38', '12.19'],
+            'financial': ['2.14', '18.48', '5.10', '16.13', '12.19'],
 
-            # RELATIONSHIPS / EMOTIONS
+            # ── BOSS / WORKPLACE INJUSTICE / JOB LOSS ────────────────────────
+            # Primary: 3.8 (prescribed duty — keep working), 18.41 (duty by nature),
+            #          2.48 (equanimity in action), 6.4 (rises above self)
+            'boss': ['18.48', '3.8', '18.41', '2.48', '6.1'],
+            'fired': ['18.47', '3.8', '18.41', '18.48', '2.48'],
+            'lost job': ['18.47', '3.8', '18.41', '18.48', '2.48'],
+            'argument with boss': ['16.2', '3.8', '18.41', '6.1', '2.48'],
+            'conflict': ['16.2', '6.9', '3.8', '18.41', '2.48'],
+            'official': ['3.8', '18.41', '2.48', '6.4'],
+            'job': ['18.47', '3.8', '18.41', '2.48', '18.48'],
+            'work': ['18.47', '3.19', '3.8', '18.45', '18.41'],
+
+            # ── SCHOOL EXAM FAILURE ──────────────────────────────────────────
+            # Primary: 2.14 (dualities of life — endure), 2.47 (do your duty),
+            #          6.5 (uplift yourself), 18.13 (all actions have factors)
+            'exam': ['18.13', '2.14', '6.5', '2.38'],
+            'fail': ['18.13', '2.14', '6.5', '2.38'],
+            'failed': ['18.13', '2.14', '6.5', '2.38'],
+            'school': ['18.13', '2.14', '6.5', '2.38'],
+            'result': ['18.11', '2.14', '1.33', '18.13'], # Removed 2.47 dominance
+
+            # ── UNSTABLE RELATIONSHIP / GIRLFRIEND / BOYFRIEND ───────────────
+            # Primary: 2.66 (no peace without steady mind), 12.13 (equanimous love),
+            #          5.22 (pleasure from senses is source of pain), 2.62 (attachment chain)
+            'girlfriend': ['2.66', '12.13', '5.22', '2.62', '2.63'],
+            'boyfriend': ['2.66', '12.13', '5.22', '2.62', '2.63'],
+            'unstable': ['2.66', '12.13', '5.22', '2.62', '6.35'],
+            'relationship': ['2.66', '12.13', '5.22', '2.62', '12.14'],
             'breakup': ['2.62', '2.63', '2.66', '5.22', '18.54'],
-            'love': ['2.62', '2.63', '12.13', '12.14'],
+            'love': ['12.13', '12.14', '2.62', '2.63', '9.26'],
             'lonely': ['6.30', '9.29', '18.54', '13.16'],
             'cheat': ['3.37', '16.21', '16.23'],
 
-            # MENTAL HEALTH
+            # ── PERSONAL STRESS / MENTAL DISTURBANCE ─────────────────────────
+            # Primary: 2.71 (peace through desire-free mind), 6.35 (mind is restless),
+            #          12.15 (who does not cause distress), 2.56 (sage undisturbed)
+            'stress': ['2.71', '6.35', '12.15', '2.56', '2.14'],
+            'mental': ['2.71', '6.35', '12.15', '2.56', '6.26'],
+            'disturbed': ['2.71', '6.35', '2.56', '12.15', '2.14'],
+            'personal matters': ['2.71', '6.35', '2.56', '12.15'],
+            'anxiety': ['6.35', '2.56', '12.15', '2.71', '18.66'],
+            'tension': ['2.71', '6.35', '2.56', '12.15'],
+
+            # ── PURPOSE OF LIFE / COMPETITIVE WORLD ──────────────────────────
+            # Primary: 3.25 (act for the benefit of world — lokasamgraha),
+            #          3.19 (act without attachment), 4.11 (all paths lead to Me),
+            #          18.63 (do what you judge right)
+            'purpose': ['3.25', '18.63', '3.19', '4.11', '5.10'],
+            'purpose in life': ['3.25', '18.63', '3.19', '4.11', '5.10'],
+            'competitive': ['3.25', '16.2', '3.19', '4.11', '5.10'],
+            'better than others': ['16.2', '3.25', '3.19', '18.54', '4.11'],
+            'meaning': ['3.25', '18.63', '3.19', '4.11', '5.10'],
+
+            # ── PARENT / FAMILY CONFLICTS (VIEWS / GENERATION GAP) ───────────
+            # Primary: 6.9 (equanimous toward all — friend, foe, parent),
+            #          16.2 (fearlessness, non-anger — divine qualities),
+            #          12.13 (no hatred — benevolent to all)
+            'mother': ['6.9', '16.2', '12.13', '15.7', '18.47'],
+            'father': ['6.9', '16.2', '12.13', '15.7', '18.47'],
+            'mummy': ['6.9', '16.2', '12.13', '15.7', '18.47'],
+            'papa': ['6.9', '16.2', '12.13', '15.7', '18.47'],
+            'parents': ['6.9', '16.2', '12.13', '15.7', '18.47'],
+            'worsening': ['6.9', '16.2', '12.13', '18.54', '11.33'],
+            'differences': ['6.9', '16.2', '12.13', '18.54', '11.33'],
+            'family refuse': ['6.9', '16.2', '3.35', '18.63', '6.1'],
+            'family against': ['6.9', '16.2', '3.35', '18.63', '6.1'],
+            'family conflict': ['6.9', '16.2', '12.13', '6.1', '18.63'],
+
+            # Primary: 2.13 (changing garments), 2.25 (unperceivable), 2.11 (not to grieve)
+            'grandmother': ['2.13', '2.25', '2.11', '2.22', '9.22'],
+            'grandma': ['2.13', '2.25', '2.11', '2.22', '9.22'],
+            'passed away': ['2.13', '2.25', '2.11', '2.22', '9.22'],
+            'death': ['2.13', '2.25', '2.11', '2.22', '9.22'],
+            'died': ['2.13', '2.25', '2.11', '2.22', '9.22'],
+            'grief': ['2.11', '2.13', '2.25', '2.27', '9.22'],
+            'depressed': ['2.13', '6.5', '2.11', '18.66', '2.14'],
+
+            # ── WORKPLACE INJUSTICE / COLLEAGUES ─────────────────────────────
+            # Primary: 3.19 (do own duty without attachment), 18.41 (duty by nature),
+            #          5.7 (karma yogi — acts without being tainted),
+            #          16.2 (fearlessness, purity of heart — divine qualities)
+            'colleagues': ['18.41', '3.19', '16.2', '5.7', '3.8'],
+            'workload': ['18.41', '3.19', '3.8', '5.7', '18.45'], 
+            'avoid work': ['18.41', '16.2', '3.19', '3.8', '5.7'],
+            'workplace': ['18.41', '16.2', '3.19', '3.8', '5.7'],
+
+            # ── MENTAL HEALTH (general) ───────────────────────────────────────
             'depression': ['6.5', '2.3', '6.6', '2.14', '18.66'],
-            'anxiety': ['2.14', '6.26', '6.35', '18.66'],
-            'stress': ['2.14', '2.56', '2.71', '12.15'],
             'confused': ['2.7', '18.61', '18.66', '18.73'],
             'anger': ['2.63', '16.21', '3.37', '3.38'],
+            'money': ['2.14', '18.38', '17.20', '16.13'],
         }
 
-        # Check for modern triggers
-        boosted_shlokas = {}  # Changed to dict to store priority
+        # Check for modern triggers with word boundaries to avoid partial matches (e.g., 'mother' in 'grandmother')
+        boosted_shlokas = {}  
+        import re
         for term, ids in modern_mappings.items():
-            if term in query_lower:
+            pattern = rf'\b{re.escape(term)}\b' # Use boundary matching for precise identification
+            if re.search(pattern, query_lower):
                 for priority, sid in enumerate(ids):
-                    # Higher boost for earlier positions in the list (bigger gap for priority)
-                    boost_value = 15.0 - (priority * 2.5)  # First=15, Second=12.5, Third=10...
+                    # Higher boost (45+) for modern context mappings to dominate semantic hits
+                    boost_value = 45.0 - (priority * 6.0) 
                     if sid not in boosted_shlokas or boosted_shlokas[sid] < boost_value:
                         boosted_shlokas[sid] = boost_value
                     
@@ -417,7 +494,7 @@ Examples:
                 
         # Sort by score
         sorted_indices = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-        return sorted_indices[:top_k]
+        return sorted_indices[:top_k], boosted_shlokas
 
     def _semantic_search(self, query: str, top_k: int = 50) -> List[Tuple[int, float]]:
         """Deep semantic vector search."""
@@ -491,25 +568,32 @@ Examples:
             for i, c in enumerate(candidates, 1):
                 options_text += f"Option {i} (ID {c['id']}): {c['meaning_english'][:300]}\n"
             
-            prompt = f"""You are a spiritual expert. Rerank these Bhagavad Gita verses based on their relevance to this user's problem.
+            prompt = f"""You are a spiritual expert. Select the most appropriate Bhagavad Gita verse (ONE) to solve the user's situation.
             
-User: "{rewritten}" (Original: "{query}")
+User's situation: "{rewritten}" (Query: "{query}")
 
-Verses:
+Available Shlokas (Ranked by engine):
 {options_text}
 
 Task:
-1. Identify the MOST relevant verse that directly provides a solution or perspective.
-2. Order them from Best to Worst.
-3. Return ONLY a list of IDs in JSON format.
+1. Identify the ONE verse that MOST SPECIFICALLY addresses the core problem.
+2. Order them from Best to Worst. 
+4. STRICT DIVERSITY: 
+   - DO NOT pick 2.47, 18.66, or 2.20 unless they are the DIRECT mapping or the situation is an absolute crisis.
+   - For Workplace Workload problems: USE 18.41 or 3.19.
+   - For Career Purpose/Competition: USE 3.25 or 18.63.
+   - For Suicidal Thoughts: USE 18.66 or 6.5 (NEVER pick 2.20 here to avoid overlap with physical death).
+   - For Physical Death (Grandmother): USE 2.13 or 2.25 or 2.11.
+   - For Parents/Family: USE 6.9 or 16.2.
+5. Return ONLY a list of the IDs in JSON format.
 
-Example: ["2.47", "18.66"]"""
+Output Format: ["ID1", "ID2", "ID3", ...]"""
             
             resp = self.groq_client.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
-                model=settings.LLM_CLASSIFIER_MODEL,
+                model=settings.LLM_MODEL, # Upgrade to 70B for better reranking
                 max_tokens=200,
-                temperature=0.0,
+                temperature=0.3,
                 response_format={"type": "json_object"}
             )
             
@@ -572,7 +656,7 @@ Example: ["2.47", "18.66"]"""
             
         # 3. Search from Keyword Perspective (Catch specific Sanskrit terms)
         kw_query = f"{variations.get('keywords', '')} {query}"
-        kw_res = self._keyword_search(kw_query, top_k=50) 
+        kw_res, boosted_shlokas = self._keyword_search(kw_query, top_k=50) 
         for idx, score in kw_res:
             candidates[idx] = candidates.get(idx, 0.0) + (score * 1.5)
             
@@ -616,17 +700,38 @@ Example: ["2.47", "18.66"]"""
         # Create a list of dictionaries with scores for debugging
         debug_candidates = []
         
-        # Sort by score for initial selection
-        sorted_candidates = sorted(candidates.items(), key=lambda item: item[1], reverse=True)
-        top_pool_idxs = [idx for idx, score in sorted_candidates[:15]]
+        # 5. POOL DIVERSIFICATION (The Diversity filter)
+        # Instead of one big list, we take top candidates from different source types
+        # to ensure the reranker has a variety of philosophical angles to choose from.
+        initial_results = []
+        seen_ids = set()
         
-        for idx in top_pool_idxs:
-            shloka_copy = self.shlokas[idx].copy()
-            shloka_copy['score'] = candidates[idx]
-            initial_results.append(shloka_copy)
-            
+        # Step A: Top 8 from Modern Triggers (Direct matches)
+        modern_sorted = sorted(boosted_shlokas.items(), key=lambda x: x[1], reverse=True)
+        for sid, score in modern_sorted[:9]: # Blended top-tier manual matches
+            # Find the shloka metadata
+            for i, shloka in enumerate(self.shlokas):
+                if shloka['id'] == sid:
+                    shloka_copy = shloka.copy()
+                    shloka_copy['score'] = score + 60 # Direct mapping wins!
+                    initial_results.append(shloka_copy)
+                    seen_ids.add(sid)
+                    break
+        
+        # Step B: Top 6 from Semantic/Keyword blends (excluding seen)
+        sorted_candidates = sorted(candidates.items(), key=lambda item: item[1], reverse=True)
+        for idx, score in sorted_candidates:
+            if len(initial_results) >= 15:
+                break
+            sid = self.shlokas[idx]['id']
+            if sid not in seen_ids:
+                shloka_copy = self.shlokas[idx].copy()
+                shloka_copy['score'] = score
+                initial_results.append(shloka_copy)
+                seen_ids.add(sid)
+
         # 6. LLM Reranking (The Final Judge)
-        # Rerank the top 15 to find the true best 5
+        # Rerank the diverse top 15 to find the true best 5
         final_results = self._rerank_with_llm(query, rewritten_query, initial_results)
             
         logger.info(f"Returning {min(len(final_results), top_k)} matches after refinement.")
@@ -760,7 +865,7 @@ Example: ["2.47", "18.66"]"""
                             'tv show', 'series', 'netflix', 'celebrity', 'singer', 'song',
                             'hero', 'heroine', 'star', 'release date', 'box office', 'hit', 'flop',
                             'salman', 'shahrukh', 'amitabh', 'reels', 'instagram', 'tiktok',
-                            'youtube channel', 'subscriber', 'views', 'viral',
+                            'youtube channel', 'subscriber', 'youtube views', 'video views', 'viral',
                             'फिल्म', 'मूवी', 'हीरो', 'हीरोइन', 'सलमान', 'शाहरुख', 'गीत', 'गाना',
                             'सीरियल', 'नेटफ्लिक्स', 'वायरल', 'वीडियो'],
             
@@ -779,14 +884,17 @@ Example: ["2.47", "18.66"]"""
                          'javascript', 'js', 'html', 'css', 'react', 'node', 'frontend', 'backend'],
             
             # Finance & Money (Investment, Banking)
+            # NOTE: 'loss' and 'profit' are intentionally EXCLUDED here — they appear in
+            # valid life-problem queries ("business in loss", "financial loss").  Only
+            # pure financial-product / market-trading queries should be rejected.
             'finance': ['stock market', 'share market', 'invest', 'investment', 'mutual fund',
-                       'crypto', 'bitcoin', 'ethereum', 'trading', 'profit', 'loss', 'bank',
-                       'account open', 'loan', 'credit card', 'debit card', 'interest rate',
-                       'tax', 'gst', 'salary', 'income', 'earning', 'money making', 'rich fast',
-                       'lottery', 'gambling', 'betting', 'paisa kaise', 'kamao', 'kamana',
-                       'gold', 'silver', 'price', 'rate', 'rupee', 'dollar', 'euro', 'double money', 'scheme',
-                       'शेयर बाजार', 'निवेश', 'बैंक', 'लोन', 'क्रेडिट कार्ड', 'सैलरी', 'कमाई',
-                       'पैसा कैसे', 'लॉटरी', 'सट्टा', 'बिटकॉइन', 'सोना', 'चांदी', 'भाव', 'कीमत'],
+                       'crypto', 'bitcoin', 'ethereum', 'trading', 'bank account open',
+                       'credit card', 'debit card', 'interest rate',
+                       'gst', 'money making scheme', 'rich fast',
+                       'lottery', 'gambling', 'betting', 'paisa kaise kamao',
+                       'gold price', 'silver price', 'rupee rate', 'dollar rate', 'euro rate',
+                       'double money', 'ponzi scheme',
+                       'शेयर बाजार', 'निवेश', 'लॉटरी', 'सट्टा', 'बिटकॉइन', 'भाव', 'कीमत'],
 
             # General Trivia / Math / School / GK
             'trivia': ['capital of', 'largest', 'smallest', 'tallest', 'fastest',
