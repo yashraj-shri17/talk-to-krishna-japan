@@ -62,13 +62,13 @@ class GitaAPI:
         logger.info("Loading high-performance models & data...")
         
         # 1. Load Data
-        print("Loading Bhagavad Gita verses...")
+        logger.info("Loading Bhagavad Gita verses...")
         
         # Try to load English version first (better for search)
         english_file = Path(settings.gita_emotions_path.parent / "gita_english.json")
         
         if english_file.exists():
-            print("   Using English translations for better semantic search")
+            logger.info("Using English translations for better semantic search")
             with open(english_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 chapters = data.get('chapters', {})
@@ -94,8 +94,8 @@ class GitaAPI:
                         })
         else:
             # Fallback to Hindi-only version
-            print("   English translations not found, using Hindi")
-            print("   Run 'python translate_to_english.py' for better search quality")
+            logger.warning("English translations not found, using Hindi fallback")
+            logger.info("Run 'python translate_to_english.py' for better search quality")
             
             if not settings.gita_emotions_path.exists():
                 raise FileNotFoundError(f"Data missing: {settings.gita_emotions_path}")
@@ -121,11 +121,10 @@ class GitaAPI:
                             'dominant_emotion': v_data.get('dominant_emotion', 'neutral')
                         })
         
-        print(f"   {len(self.shlokas)} shlokas loaded")
         logger.info(f"Loaded {len(self.shlokas)} shlokas")
 
         # 2. Load Embeddings
-        print("Loading semantic understanding...")
+        logger.info("Loading semantic understanding...")
         if not settings.embeddings_path.exists():
              raise FileNotFoundError(f"Embeddings missing. Run rebuild_embeddings.py first!")
              
@@ -136,17 +135,11 @@ class GitaAPI:
             
             # Reshape if flattened (FastEmbed/Pickle quirk)
             if self.embeddings.ndim == 1:
-                # Deduce dimension from size
-                # We know logic: num_verses = 683 (usually)
-                # But safer to use the loaded shlokas length
                 n_shlokas = len(self.shlokas)
                 if n_shlokas > 0:
                     dim = self.embeddings.size // n_shlokas
                     logger.info(f"Reshaping 1D embeddings: {self.embeddings.shape} -> ({n_shlokas}, {dim})")
                     self.embeddings = self.embeddings.reshape(n_shlokas, dim)
-                else:
-                    # Fallback logic if shlokas not loaded yet (should not happen due to order)
-                    pass
             
             # Safety check: Ensure model matches
             saved_model_name = data.get('model_name', '')
@@ -154,23 +147,10 @@ class GitaAPI:
             if saved_model_name and saved_model_name != configured_model:
                 logger.warning(f"Model mismatch! Saved: {saved_model_name}, Config: {configured_model}")
         
-        print("   Embeddings ready")
         logger.info(f"Loaded embeddings: {self.embeddings.shape}")
-
-        # NOTE: Semantic model is loaded LAZILY on first search to save memory
-        # This allows the server to start with minimal RAM usage
-        logger.info("✅ Data loaded. Semantic model will load on first query.")
+        logger.info("Data loaded. Semantic model will load on first query.")
         
-        # NOTE: Cross-Encoder disabled because we have Hindi data but English Model.
-        # The Multilingual Vector Model + Keyword search is much more accurate.
-        self.cross_encoder = None 
-        
-        print("\n✅ Krishna is ready!")
-        print("Semantic model will load on first question (saves memory).\n")
-
-
-
-        # 4. Initialize Tools
+        # 3. Initialize Tools
         if self.groq_api_key:
             try:
                 self.groq_client = Groq(api_key=self.groq_api_key)
@@ -181,11 +161,9 @@ class GitaAPI:
     def _ensure_semantic_model(self):
         """Lazy load semantic model only when needed."""
         if self.semantic_model is None:
-            logger.info(f"🔄 Loading Semantic Model: {settings.SENTENCE_TRANSFORMER_MODEL}")
-            print("Loading AI model (first time only)...")
+            logger.info(f"Loading Semantic Model: {settings.SENTENCE_TRANSFORMER_MODEL} (first time only)...")
             self.semantic_model = TextEmbedding(model_name=settings.SENTENCE_TRANSFORMER_MODEL)
-            logger.info("✅ Semantic model loaded")
-            print("✅ Model ready!\n")
+            logger.info("Semantic model loaded successfully")
 
     def _understand_query(self, query: str) -> Dict[str, str]:
         """
@@ -219,8 +197,9 @@ Respond in STRICT JSON:
 }}
 
 RULES FOR 'is_relevant':
-- TRUE if: Personal problem, emotional distress, philosophical question about life/death/God, or requesting spiritual guidance.
-- FALSE if: 
+1. PRIORITY RULE: Analyze for emotional distress or life problems FIRST. If the user expresses sadness, confusion, conflict, or seeks help, the query is TRUE (Relevant), even if they mention irrelevant objects (like a game, movie, or laptop).
+2. TRUE if: Personal problem, emotional distress, philosophical question about life/death/God, or requesting spiritual guidance.
+3. FALSE only if entirely factual/trivial: 
   - Cooking/Food recipes (e.g., "chai kaise banaye", "pizza recipe")
   - Math/Science homework (e.g., "2+2", "gravity formula", "calculation", "percentage")
   - Coding/Technical/Software (e.g., "github", "repo", "install", "download", "app", "website", "error fix")
@@ -228,9 +207,9 @@ RULES FOR 'is_relevant':
   - Casual chit-chat without depth (e.g., "bored", "tell joke", "hi", "hello")
 
 Examples:
+- "Mummy papa mobile game khelne par gussa karte hain, main kya karu" -> {{ "rewritten_query": "My parents are angry because I play mobile games, what should I do?", "emotional_state": "distress", "keywords": "parents conflict duty", "is_relevant": true }}
 - "Github par repo kaise banaye" -> {{ "rewritten_query": "Github repository creation", "emotional_state": "neutral", "keywords": "tech", "is_relevant": false }}
 - "Chai kaise banate hain?" -> {{ "rewritten_query": "How to make tea", "emotional_state": "neutral", "keywords": "cooking", "is_relevant": false }}
-- "2+2 kitna hota hai?" -> {{ "rewritten_query": "Math calculation", "emotional_state": "neutral", "keywords": "math", "is_relevant": false }}
 - "Aaj weather kaisa hai?" -> {{ "rewritten_query": "Weather forecast", "emotional_state": "neutral", "keywords": "weather", "is_relevant": false }}
 - "Python mein list sort kaise kare?" -> {{ "rewritten_query": "Python coding help", "emotional_state": "neutral", "keywords": "coding", "is_relevant": false }}
 - "Mummy papa shaadi ke liye nahi maan rahe" -> {{ "rewritten_query": "My parents are not approving my marriage choice, causing family conflict.", "emotional_state": "distress", "keywords": "family duty love conflict", "is_relevant": true }}
@@ -396,7 +375,6 @@ Examples:
 
         # Check for modern triggers with word boundaries to avoid partial matches (e.g., 'mother' in 'grandmother')
         boosted_shlokas = {}  
-        import re
         for term, ids in modern_mappings.items():
             pattern = rf'\b{re.escape(term)}\b' # Use boundary matching for precise identification
             if re.search(pattern, query_lower):
@@ -546,8 +524,6 @@ Examples:
             
         except Exception as e:
             logger.error(f"Semantic search failed: {e}")
-            import traceback
-            logger.error(traceback.format_exc())
             return []
             
         # Get indices
@@ -754,35 +730,49 @@ Output Format: ["ID1", "ID2", "ID3", ...]"""
         # Comprehensive list of greetings in multiple languages
         greetings = {
             # English greetings
-            "hi", "hello", "hey", "hii", "hiii", "helo", "heyy", "heya", "yo",
+            "hi", "hello", "hey", "hii", "hiii", "helo", "heyy", "heya", "yo", "wassup",
             "greetings", "good morning", "good afternoon", "good evening", "good night",
-            "gm", "ge", "gn", "ga", "morning", "evening", "afternoon",
+            "gm", "ge", "gn", "ga", "morning", "evening", "afternoon", "welcome",
+            "how are you", "hope you are well", "nice to meet you", "dear", "sir", "madam",
+            "hiya", "howdy", "salutations", "what's up", "hey there", "hi there", "hello there",
             
             # Hindi/Sanskrit greetings (Romanized)
             "namaste", "namaskar", "namaskaram", "pranam", "pranaam", "pranaams",
-            "radhe radhe", "radhey radhey", "radhe", "radhey",
-            "jai shri krishna", "jai shree krishna", "jai sri krishna", 
-            "hare krishna", "hare krsna", "krishna", "krsna",
-            "jai", "jay", "om", "aum",
+            "radhe radhe", "radhey radhey", "radhe", "radhey", "jai maata di",
+            "jai shri krishna", "jai shree krishna", "jai sri krishna", "jai shri ram",
+            "hare krishna", "hare krsna", "krishna", "krsna", "hari bol",
+            "jai", "jay", "om", "aum", "shree", "sri", "shanti", "kalyan",
+            "jai siyaram", "sita ram", "ram ram", "har har mahadev", "om namah shivay",
             
             # Hindi Devanagari Script Greetings
             "हेलो", "हेल्लो", "हाय", "हाई", "हलो",
-            "नमस्ते", "नमस्कार", "नमस्कारम", "प्रणाम", "प्रनाम",
+            "नमस्ते", "नमस्कार", "नमस्कारम", "प्रणाम", "प्रनाम", "स्वागत",
             "राधे राधे", "राधे", "राधेय राधेय",
-            "जय श्री कृष्ण", "जय श्रीकृष्ण", "जय कृष्ण",
-            "हरे कृष्ण", "हरे कृष्णा", "कृष्ण",
-            "जय", "ओम", "ॐ",
+            "जय श्री कृष्ण", "जय श्रीकृष्ण", "जय कृष्ण", "जय श्री राम",
+            "हरे कृष्ण", "हरे कृष्णा", "कृष्ण", "हरि बोल", "जय सियाराम", "सीता राम", "राम राम",
+            "जय", "ओम", "ॐ", "श्री", "हर हर महादेव", "ओम नमः शिवाय",
             "सुप्रभात", "शुभ संध्या", "शुभ रात्रि",
-            "कैसे हो", "कैसे हैं", "क्या हाल", "क्या हाल है",
+            "कैसे हो", "कैसे हैं", "क्या हाल", "क्या हाल है", "सब ठीक", "और बताओ",
             
-            # Casual/Informal
-            "sup", "wassup", "whatsup", "howdy", "hola",
-            "kaise ho", "kaise hain", "kya haal", "kya hal", "namaskaar"
+            # Japanese Greetings (Romaji & Kanji/Kana)
+            "konnichiwa", "ohayo", "ohayou", "gozaimasu", "kombanwa", "konbanwa", "oyasumi", "oyasuminasai",
+            "moshi moshi", "arigato", "arigatou", "domo", "doumo", "hajimemashite", "yoroshiku",
+            "onegai", "shimasu", "sayonara", "mata ne", "ja ne", "tadaima", "okaeri", 
+            "hisashiburi", "genki", "desu ka", "irrashaimase", "yokoso",
+            "こんにちは", "おはよう", "おはようございます", "こんばんは", "おやすみ", "おやすみなさい",
+            "もしもし", "ありがとう", "どうも", "やあ", "おす", "はじめまして", "よろしく",
+            "よろしくお願いします", "さようなら", "またね", "じゃあね", "ただいま", "おかえり", 
+            "お久しぶり", "元気ですか", "いらっしゃいませ", "ようこそ", "よろしくおねがいします",
+            
+            # Casual/Informal globally
+            "sup", "whats up", "whatsup", "howdy", "hola", "bonjour", "ciao", "salaam",
+            "kaise ho", "kaise hain", "kya haal", "kya hal", "namaskaar", "namaskara", "vanakkam",
+            "sat sri akal", "kem cho", "mazaama", "halo", "anyoung", "annyeong", 
+            "ni hao", "nǐ hǎo"
         }
         
         # Normalize: remove only punctuation, preserve all letters (including Devanagari)
         # Keep alphanumeric + spaces + Devanagari combining marks
-        import unicodedata
         cleaned = ''.join(c for c in query.lower() if c.isalnum() or c.isspace() or unicodedata.category(c).startswith('M'))
         words = cleaned.split()
         
@@ -841,7 +831,7 @@ Output Format: ["ID1", "ID2", "ID3", ...]"""
         
         # IRRELEVANT TOPICS - These should be rejected
         irrelevant_patterns = {
-            # Sports & Games (Cricket, Football, General)
+            # Sports & Games
             'sports': ['cricket', 'football', 'soccer', 'match', 'ipl', 'world cup', 'player', 
                       'team', 'score', 'goal', 'wicket', 'stadium', 'olympics', 'tennis',
                       'ind vs', 'india vs', 'pakistan vs', 'match update', 'live score',
@@ -849,6 +839,7 @@ Output Format: ["ID1", "ID2", "ID3", ...]"""
                       'drs', 'review', 'umpire', 'captain', 'coach', 'tournament', 'series',
                       'fifa', 'messi', 'ronaldo', 'virat', 'kohli', 'dhoni', 'rohit', 'game',
                       'badminton', 'hockey', 'chess', 'bgmi', 'pubg', 'video game', 'kabaddi',
+                      'basketball', 'nba', 'wrestling', 'wwe', 'formula 1', 'f1', 'racing',
                       'क्रिकेट', 'मैच', 'स्कोर', 'आईपीएल', 'खिलाड़ी', 'टीम', 'विकेट', 'छक्का', 'चौका',
                       'डीआरएस', 'अंपायर', 'फुटबॉल', 'मेडल', 'ओलंपिक', 'बैडमिंटन', 'धोनी', 'कोहली'],
             
@@ -857,44 +848,45 @@ Output Format: ["ID1", "ID2", "ID3", ...]"""
                         'government', 'party', 'vote', 'donald trump', 'biden', 'modi',
                         'congress', 'bjp', 'political', 'democracy', 'neta', 'chunav', 'voting',
                         'pm', 'cm', 'mla', 'mp', 'sansad', 'vidhan sabha', 'lok sabha', 'news',
+                        'supreme court', 'high court', 'law passing', 'budget', 'g20', 'un',
                         'चुनाव', 'नेता', 'मोदी', 'प्रधानमंत्री', 'सरकार', 'वोट', 'बीजेपी', 'कांग्रेस',
                         'राजनीति', 'समाचार', 'खबर', 'न्यूज़'],
             
-            # Entertainment & Celebrity
+            # Entertainment, Pop Culture & Anime
             'entertainment': ['movie', 'film', 'actor', 'actress', 'bollywood', 'hollywood',
                             'tv show', 'series', 'netflix', 'celebrity', 'singer', 'song',
                             'hero', 'heroine', 'star', 'release date', 'box office', 'hit', 'flop',
                             'salman', 'shahrukh', 'amitabh', 'reels', 'instagram', 'tiktok',
                             'youtube channel', 'subscriber', 'youtube views', 'video views', 'viral',
+                            'anime', 'manga', 'naruto', 'one piece', 'goku', 'dragon ball', 'marvel',
+                            'dc comics', 'batman', 'superman', 'spiderman', 'avengers', 'cinema',
                             'फिल्म', 'मूवी', 'हीरो', 'हीरोइन', 'सलमान', 'शाहरुख', 'गीत', 'गाना',
-                            'सीरियल', 'नेटफ्लिक्स', 'वायरल', 'वीडियो'],
+                            'सीरियल', 'नेटफ्लिक्स', 'वायरल', 'वीडियो', 'एनिमे', 'मार्वल'],
             
-            # Technology & Products (only product/tech questions, NOT social media life problems)
+            # Technology, Coding & Products
             'technology': ['iphone', 'android', 'laptop', 'computer', 'software', 'app', 'website',
                          'microsoft', 'apple inc', 'samsung', 'coding', 'programming', 
                          'python code', 'java code', 'excel formula', 'python mein', 
-                         'code likho', 'sort list', 'loop in', 'function in',
+                         'code likho', 'sort list', 'loop in', 'function in', 'c++', 'html error',
                          'github', 'repo', 'git', 'install', 'download', 'upload', 'server', 'database',
                          'error', 'bug', 'fix', 'wifi', 'internet', 'mobile', 'phone', 'battery',
                          'charger', 'sim', 'network', '4g', '5g', 'bluetooth', 'mouse', 'keyboard',
-                         'hack', 'password', 'login', 'signup', 'account', 'delete',
+                         'hack', 'password', 'login', 'signup', 'account', 'delete', 'vpn', 'router',
                          'कंप्यूटर', 'लैपटॉप', 'मोबाइल', 'फ़ोन', 'चार्जर', 'इंटरनेट', 'वाईफाई',
                          'ऐप', 'सॉफ्टवेयर', 'इंस्टॉल', 'डाउनलोड', 'हैकिंग', 'पासवर्ड', 'अकाउंट',
                          'पायथन', 'जावा', 'कोडिंग', 'प्रोग्रामिंग', 'गिठूब', 'रेपो',
                          'javascript', 'js', 'html', 'css', 'react', 'node', 'frontend', 'backend'],
             
-            # Finance & Money (Investment, Banking)
-            # NOTE: 'loss' and 'profit' are intentionally EXCLUDED here — they appear in
-            # valid life-problem queries ("business in loss", "financial loss").  Only
-            # pure financial-product / market-trading queries should be rejected.
-            'finance': ['stock market', 'share market', 'invest', 'investment', 'mutual fund',
+            # Finance, Shopping & Money
+            'finance_shopping': ['stock market', 'share market', 'invest', 'investment', 'mutual fund',
                        'crypto', 'bitcoin', 'ethereum', 'trading', 'bank account open',
-                       'credit card', 'debit card', 'interest rate',
+                       'credit card', 'debit card', 'interest rate', 'loan approval',
                        'gst', 'money making scheme', 'rich fast',
                        'lottery', 'gambling', 'betting', 'paisa kaise kamao',
                        'gold price', 'silver price', 'rupee rate', 'dollar rate', 'euro rate',
-                       'double money', 'ponzi scheme',
-                       'शेयर बाजार', 'निवेश', 'लॉटरी', 'सट्टा', 'बिटकॉइन', 'भाव', 'कीमत'],
+                       'double money', 'ponzi scheme', 'amazon', 'flipkart', 'myntra', 'discount',
+                       'sale', 'coupon', 'price of', 'kitne ka hai', 'buy online',
+                       'शेयर बाजार', 'निवेश', 'लॉटरी', 'सट्टा', 'बिटकॉइन', 'भाव', 'कीमत', 'डिस्काउंट', 'अमेज़न'],
 
             # General Trivia / Math / School / GK
             'trivia': ['capital of', 'largest', 'smallest', 'tallest', 'fastest',
@@ -905,7 +897,7 @@ Output Format: ["ID1", "ID2", "ID3", ...]"""
                       'algebra', 'trigonometry', 'physics', 'chemistry', 'biology', 'history',
                       'geography quiz', 'general knowledge', 'gk question', 'who is', 'kon hai',
                       'titanic', 'padosi', 'neighbor', 'joke', 'kahani', 'story', 'chutkula', 'lol', 'rofl',
-                      'tie a tie', 'height of', 'distance between', 'mount everest',
+                      'tie a tie', 'height of', 'distance between', 'mount everest', 'riddle',
                       'राजधानी', 'सबसे बड़ा', 'इतिहास', 'गणित', 'जोड़', 'घटाना', 'गुणा', 'भाग',
                       'ज्यामिति', 'फॉर्मूला', 'सूत्र', 'पहेली', 'चुटकुला', 'कहानी', 'पड़ोसी', 'कौन है'],
             
@@ -914,7 +906,7 @@ Output Format: ["ID1", "ID2", "ID3", ...]"""
                        'virus covid', 'vaccine', 'dna', 'atom', 'neutron', 'electron', 'gravity', 'physics',
                        'solar system', 'planet', 'mars', 'moon distance', 'sun distance', 'earth',
                        'evolution', 'big bang', 'black hole', 'nasa', 'isro', 'space', 'rocket',
-                       'photosynthesis', 'plant', 'animal',
+                       'photosynthesis', 'plant', 'animal', 'microscope', 'telescope', 'quantum',
                        'विज्ञान', 'ग्रह', 'पृथ्वी', 'सूर्य', 'चांद', 'मंगल', 'अंतरिक्ष', 'रॉकेट',
                        'परमाणु', 'अणु', 'वायरस', 'वैक्सीन', 'डीएनए', 'ग्रेविटी'],
             
@@ -924,17 +916,18 @@ Output Format: ["ID1", "ID2", "ID3", ...]"""
                     'khana kaise', 'make tea', 'make coffee', 'biryani', 'maggie', 'paneer',
                     'chicken', 'mutton', 'fish', 'egg', 'veg', 'non-veg', 'dish', 'swiggy', 'zomato',
                     'samosa', 'cake', 'bread', 'roti', 'dal', 'sabji', 'breakfast', 'lunch', 'dinner',
+                    'ice cream', 'chocolate', 'dessert', 'soup', 'salad', 'baking', 'oven',
                     'रेसिपी', 'बनाए', 'खाना', 'रसोई', 'चाय', 'कॉफी', 'पिज़्ज़ा', 'बर्गर', 'पास्ता',
-                    'बिरयानी', 'पनीर', 'चिकन', 'मटन', 'अंडा', 'समोसा', 'केक', 'रोटी', 'सब्जी'],
+                    'बिरयानी', 'पनीर', 'चिकन', 'मटन', 'अंडा', 'समोसा', 'केक', 'रोटी', 'सब्जी', 'मिठाई'],
             
-            # Weather & Geography (factual)
+            # Weather, Travel & Geography (factual)
             'geography': ['weather', 'temperature', 'forecast', 'rain tomorrow',
                          'climate in', 'map of', 'distance between', 'mausam', 'barish', 'dhup',
                          'garmi', 'sardi', 'thand', 'monsoon', 'humidity', 'degree celsius',
-                         'bus', 'train', 'flight', 'ticket', 'booking',
+                         'bus', 'train', 'flight', 'ticket', 'booking', 'hotel room', 'visa application',
+                         'passport', 'airport', 'railway station', 'directions to', 'gps',
                          'मौसम', 'बारिश', 'धूप', 'गर्मी', 'सर्दी', 'ठंड', 'तापमान', 'डिग्री',
-                         'मौसम', 'बारिश', 'धूप', 'गर्मी', 'सर्दी', 'ठंड', 'तापमान', 'डिग्री',
-                         'बस', 'ट्रेन', 'फ्लाइट', 'हवाई जहाज', 'टिकट', 'बुकिंग',
+                         'बस', 'ट्रेन', 'फ्लाइट', 'हवाई जहाज', 'टिकट', 'बुकिंग', 'होटल', 'पासपोर्ट',
                          # Unicode Matches (Guaranteed)
                          '\u0915\u094d\u0930\u093f\u0915\u0947\u091f', # cricket
                          '\u0921\u0940\u0906\u0930\u090f\u0938', # drs
@@ -942,6 +935,76 @@ Output Format: ["ID1", "ID2", "ID3", ...]"""
                          '\u092c\u0938']
         }
         
+        # RELEVANT KEYWORDS - These indicate the query is likely relevant
+        relevant_keywords = [
+            # Krishna & Deities
+            'krishna', 'कृष्ण', 'भगवान', 'bhagwan', 'god', 'ishwar', 'ईश्वर', 'parmatma',
+            'arjun', 'अर्जुन', 'radha', 'राधा', 'vishnu', 'विष्णु', 'shiva', 'mahadev',
+            'ram', 'hanuman', 'kanha', 'govind', 'gopal', 'murari', 'madhav',
+
+            # Bhagavad Gita & Scriptures
+            'gita', 'गीता', 'shloka', 'श्लोक', 'verse', 'chapter', 'अध्याय',
+            'scripture', 'sacred', 'holy', 'divine', 'vedas', 'upanishad', 'purana',
+
+            # Spiritual Concepts
+            'dharma', 'धर्म', 'karma', 'कर्म', 'yoga', 'योग', 'bhakti', 'भक्ति', 'gyan', 'jnana',
+            'atma', 'आत्मा', 'soul', 'spiritual', 'आध्यात्मिक', 'meditation', 'ध्यान', 'puja',
+            'moksha', 'मोक्ष', 'liberation', 'enlightenment', 'nirvana', 'samadhi', 'maya', 'illusion',
+            'pap', 'paap', 'punya', 'sin', 'virtue', 'divine', 'satya', 'sach', 'truth',
+
+            # Life Guidance Topics
+            'life', 'जीवन', 'purpose', 'meaning', 'path', 'मार्ग', 'way', 'direction',
+            'problem', 'समस्या', 'solution', 'समाधान', 'help', 'मदद', 'guide', 'guidance',
+            'chahta', 'chahti', 'chahiye', 'karna', 'karu', 'karoon', 'karun',
+            'batao', 'bataiye', 'btao', 'btaiye', 'samjhao', 'dikhao', 'decision', 'faisla',
+
+            # Emotions & Mental States
+            'anger', 'क्रोध', 'peace', 'शांति', 'fear', 'भय', 'anxiety', 'चिंता',
+            'stress', 'depression', 'sad', 'दुख', 'happy', 'सुख', 'joy', 'आनंद',
+            'confused', 'असमंजस', 'lost', 'hopeless', 'निराश', 'pareshan', 'overthinking',
+            'dukhi', 'udaas', 'akela', 'tanha', 'dara', 'ghabra', 'restless', 'bechain',
+            'gussa', 'ghussa', 'chinta', 'tension', 'takleef', 'mushkil', 'dard', 'pain',
+            'suicidal', 'suicide', 'marna', 'jeena', 'zindagi', 'jindagi', 'exhausted', 'thak gaya',
+            'alone', 'lonely', 'loneliness', 'guilt', 'regret', 'pachtawa', 'rona', 'cry',
+
+            # Relationships
+            'love', 'प्रेम', 'hate', 'घृणा', 'family', 'परिवार', 'friend', 'मित्र',
+            'relationship', 'संबंध', 'marriage', 'विवाह', 'breakup', 'heartbreak',
+            'mummy', 'mama', 'papa', 'father', 'mother', 'bhai', 'behen', 'sister',
+            'brother', 'dost', 'yaar', 'girlfriend', 'boyfriend', 'wife', 'husband',
+            'pati', 'patni', 'beta', 'beti', 'ghar', 'gharwale', 'parents', 'children',
+            'rishtedaar', 'rishta', 'shaadi', 'divorce', 'pyaar', 'mohabbat', 'ishq',
+            'cheat', 'dhokha', 'betrayal', 'trust', 'bharosa', 'toxic', 'ladai', 'jhagda',
+
+            # Work, Study & Career
+            'work', 'काम', 'job', 'नौकरी', 'duty', 'कर्तव्य', 'responsibility',
+            'success', 'सफलता', 'failure', 'असफलता', 'exam', 'परीक्षा', 'interview',
+            'padhai', 'padhna', 'study', 'college', 'school', 'university', 'marks',
+            'naukri', 'business', 'career', 'future', 'australia', 'abroad',
+            'videsh', 'bahar', 'jaana', 'jane', 'permission', 'allow', 'boss', 'office',
+            'mana', 'roka', 'rok', 'nahi dete', 'nahi de rahi', 'nahi de rhe', 'fired',
+            'money', 'paisa', 'ameer', 'rich', 'garib', 'financial', 'karza', 'debt',
+
+            # Existential Questions
+            'why', 'क्यों', 'how', 'कैसे', 'what is', 'क्या है', 'who am i', 'destiny',
+            'death', 'मृत्यु', 'birth', 'जन्म', 'suffering', 'कष्ट', 'fate', 'kismat',
+            'desire', 'इच्छा', 'attachment', 'मोह', 'ego', 'अहंकार', 'pride', 'ghamand',
+
+            # Common Hinglish life situation words
+            'kya karu', 'kya karun', 'kya karoon', 'kya karna chahiye',
+            'kaise karu', 'kaise karun', 'kaise karoon', 'samajh nahi aa raha',
+            'sahi', 'galat', 'theek', 'bura', 'acha', 'achha',
+            'meri', 'mera', 'mere', 'mujhe', 'mujhko', 'main', 'hum',
+            'nahi', 'nhi', 'mat', 'ruk', 'rok', 'khatam', 'shuru'
+        ]
+
+        # 1. CHECK RELEVANT KEYWORDS FIRST
+        # If query contains any relevant keyword, it's likely valid, bypass irrelevant checks
+        if any(keyword in query_lower for keyword in relevant_keywords):
+            logger.info(f"✅ Relevant query detected FIRST: '{query}'")
+            return True, ""
+            
+        # 2. CHECK IRRELEVANT TOPICS AFTER
         # Check for irrelevant patterns
         norm_query = unicodedata.normalize('NFKC', query).casefold()
         
@@ -961,69 +1024,6 @@ Output Format: ["ID1", "ID2", "ID3", ...]"""
 • 瞑想、心の平和、そして自己成長について
 
 これらのトピックについて質問してください。"""
-        
-        # RELEVANT KEYWORDS - These indicate the query is likely relevant
-        relevant_keywords = [
-            # Krishna & Deities
-            'krishna', 'कृष्ण', 'भगवान', 'bhagwan', 'god', 'ishwar', 'ईश्वर',
-            'arjun', 'अर्जुन', 'radha', 'राधा', 'vishnu', 'विष्णु',
-
-            # Bhagavad Gita & Scriptures
-            'gita', 'गीता', 'shloka', 'श्लोक', 'verse', 'chapter', 'अध्याय',
-            'scripture', 'sacred', 'holy', 'divine',
-
-            # Spiritual Concepts
-            'dharma', 'धर्म', 'karma', 'कर्म', 'yoga', 'योग', 'bhakti', 'भक्ति',
-            'atma', 'आत्मा', 'soul', 'spiritual', 'आध्यात्मिक', 'meditation', 'ध्यान',
-            'moksha', 'मोक्ष', 'liberation', 'enlightenment', 'nirvana', 'samadhi',
-
-            # Life Guidance Topics
-            'life', 'जीवन', 'purpose', 'meaning', 'path', 'मार्ग', 'way',
-            'problem', 'समस्या', 'solution', 'समाधान', 'help', 'मदद', 'guide',
-            'chahta', 'chahti', 'chahiye', 'karna', 'karu', 'karoon', 'karun',
-            'batao', 'bataiye', 'btao', 'btaiye', 'samjhao',
-
-            # Emotions & Mental States
-            'anger', 'क्रोध', 'peace', 'शांति', 'fear', 'भय', 'anxiety', 'चिंता',
-            'stress', 'depression', 'sad', 'दुख', 'happy', 'सुख', 'joy', 'आनंद',
-            'confused', 'असमंजस', 'lost', 'hopeless', 'निराश', 'pareshan',
-            'dukhi', 'udaas', 'akela', 'tanha', 'dara', 'ghabra',
-            'gussa', 'ghussa', 'chinta', 'tension', 'takleef', 'mushkil',
-            'suicidal', 'suicide', 'marna', 'jeena', 'zindagi', 'jindagi',
-
-            # Relationships
-            'love', 'प्रेम', 'hate', 'घृणा', 'family', 'परिवार', 'friend', 'मित्र',
-            'relationship', 'संबंध', 'marriage', 'विवाह', 'breakup',
-            'mummy', 'mama', 'papa', 'father', 'mother', 'bhai', 'behen', 'sister',
-            'brother', 'dost', 'yaar', 'girlfriend', 'boyfriend', 'wife', 'husband',
-            'pati', 'patni', 'beta', 'beti', 'ghar', 'gharwale', 'parents',
-            'rishtedaar', 'rishta', 'shaadi', 'divorce', 'pyaar', 'mohabbat',
-
-            # Work, Study & Career
-            'work', 'काम', 'job', 'नौकरी', 'duty', 'कर्तव्य', 'responsibility',
-            'success', 'सफलता', 'failure', 'असफलता', 'exam', 'परीक्षा',
-            'padhai', 'padhna', 'study', 'college', 'school', 'university',
-            'naukri', 'business', 'career', 'future', 'australia', 'abroad',
-            'videsh', 'bahar', 'jaana', 'jane', 'permission', 'allow',
-            'mana', 'roka', 'rok', 'nahi dete', 'nahi de rahi', 'nahi de rhe',
-
-            # Existential Questions
-            'why', 'क्यों', 'how', 'कैसे', 'what is', 'क्या है', 'who am i',
-            'death', 'मृत्यु', 'birth', 'जन्म', 'suffering', 'कष्ट',
-            'desire', 'इच्छा', 'attachment', 'मोह', 'ego', 'अहंकार',
-
-            # Common Hinglish life situation words
-            'kya karu', 'kya karun', 'kya karoon', 'kya karna chahiye',
-            'kaise karu', 'kaise karun', 'kaise karoon',
-            'sahi', 'galat', 'theek', 'bura', 'acha', 'achha',
-            'meri', 'mera', 'mere', 'mujhe', 'mujhko', 'main', 'hum',
-            'nahi', 'nhi', 'mat', 'ruk', 'rok',
-        ]
-
-        # If query contains any relevant keyword, it's likely valid
-        if any(keyword in query_lower for keyword in relevant_keywords):
-            logger.info(f"✅ Relevant query detected: '{query}'")
-            return True, ""
 
         # DEFAULT: Allow all queries that aren't explicitly irrelevant.
         # Real life problems come in many forms - benefit of doubt always.
