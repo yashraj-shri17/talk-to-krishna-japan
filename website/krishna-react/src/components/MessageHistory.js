@@ -149,7 +149,36 @@ function MessageHistory({ messages, isOpen, onClose, onClearHistory, onSpeak, ac
                                     <span className="message-time">
                                         {(() => {
                                             try {
-                                                const date = message.timestamp instanceof Date ? message.timestamp : new Date(message.timestamp + 'Z'); // Add Z to make timestamp UTC before IST conversion if missing
+                                                if (!message.timestamp) return '';
+                                                let date;
+
+                                                if (message.timestamp instanceof Date) {
+                                                    date = message.timestamp;
+                                                } else {
+                                                    // Robust handling for SQLite strings and Pre-formatted ISO strings
+                                                    let ts = String(message.timestamp);
+
+                                                    // Convert SQLite spacing "2024-10-10 12:00:00" -> "2024-10-10T12:00:00"
+                                                    if (ts.includes(' ') && !ts.includes('T')) {
+                                                        ts = ts.replace(' ', 'T');
+                                                    }
+
+                                                    // Add 'Z' (UTC) only if timezone modifier is entirely missing
+                                                    if (!ts.endsWith('Z') && !ts.includes('+') && ts.split('-').length <= 3) {
+                                                        ts += 'Z';
+                                                    }
+
+                                                    date = new Date(ts);
+                                                }
+
+                                                // Absolute fallback if parsing failed entirely
+                                                if (isNaN(date.getTime())) {
+                                                    date = new Date(message.timestamp);
+                                                }
+
+                                                // Rather than printing "Invalid Date", quietly return blank if completely broken
+                                                if (isNaN(date.getTime())) return '';
+
                                                 return date.toLocaleTimeString('en-IN', {
                                                     timeZone: 'Asia/Kolkata',
                                                     hour: '2-digit',
