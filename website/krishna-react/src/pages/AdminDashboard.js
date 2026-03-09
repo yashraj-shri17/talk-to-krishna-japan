@@ -7,16 +7,12 @@ import {
     Users,
     MessageSquare,
     ShieldAlert,
-    Key,
     ChevronRight,
     ArrowLeft,
-    PlusCircle,
-    UserPlus,
     History,
     Activity,
     Lock,
-    Unlock,
-    Search
+    Unlock
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config/api';
@@ -31,7 +27,7 @@ const AdminDashboard = () => {
     const [conversationUsers, setConversationUsers] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
     const [userConversations, setUserConversations] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
