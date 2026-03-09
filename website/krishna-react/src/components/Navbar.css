@@ -291,3 +291,11 @@
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
     transform: scale(1.05);
 }
+.admin-link-pill {
+    background: rgba(99, 102, 241, 0.15) !important;
+    border: 1px solid rgba(99, 102, 241, 0.4) !important;
+    padding: 6px 14px !important;
+    border-radius: 50px !important;
+    font-weight: 700 !important;
+    margin-left: 10px;
+}

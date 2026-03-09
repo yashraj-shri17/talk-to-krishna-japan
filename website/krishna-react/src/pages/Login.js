@@ -43,7 +43,11 @@ function Login() {
 
             if (response.ok) {
                 login(data.user);
-                navigate('/chat');
+                if (data.user.role === 'admin') {
+                    navigate('/admin');
+                } else {
+                    navigate('/chat');
+                }
             } else {
                 setError(data.error || 'Login failed');
             }

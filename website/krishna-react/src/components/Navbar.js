@@ -56,7 +56,12 @@ function Navbar() {
 
                     {user ? (
                         <>
-                            <Link to="/chat" className={`nav-link ${location.pathname === '/chat' ? 'active' : ''}`} onClick={closeMenu}>チャット</Link>
+                            {(user.has_chat_access || user.role === 'admin') && (
+                                <Link to="/chat" className={`nav-link ${location.pathname === '/chat' ? 'active' : ''}`} onClick={closeMenu}>チャット</Link>
+                            )}
+                            {user.role === 'admin' && (
+                                <Link to="/admin" className={`nav-link ${location.pathname === '/admin' ? 'active' : ''} admin-link-pill`} onClick={closeMenu}>管理パネル</Link>
+                            )}
                             <Link to="/profile" className="nav-link profile-link" onClick={closeMenu}>
                                 <div className="nav-avatar">
                                     {getInitials(user.name)}

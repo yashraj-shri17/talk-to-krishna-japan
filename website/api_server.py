@@ -221,6 +221,27 @@ def ask_question():
         
         session_id = data.get('session_id')  # New: Session ID for context filtering
         
+        # Check chat access for logged-in users
+        if user_id:
+            try:
+                conn = get_db_connection()
+                c = conn.cursor()
+                c.execute('SELECT has_chat_access, role FROM users WHERE id = %s', (user_id,))
+                user_access = c.fetchone()
+                conn.close()
+                
+                if user_access:
+                    has_access, role = user_access
+                    if not has_access and role != 'admin':
+                        return jsonify({
+                            'error': 'You do not have permission to use the chat feature. Please contact the administrator.',
+                            'success': False,
+                            'access_denied': True
+                        }), 403
+            except Exception as e:
+                print(f"Error checking chat access: {e}")
+                # Log the error and continue - don't block user if DB check fails
+        
         if not question:
             return jsonify({
                 'error': 'Question cannot be empty',
@@ -612,7 +633,10 @@ def init_db():
             id SERIAL PRIMARY KEY,
             name TEXT NOT NULL,
             email TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL
+            password TEXT NOT NULL,
+            role TEXT DEFAULT 'user',
+            has_chat_access BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
     
@@ -651,6 +675,32 @@ def init_db():
             used BOOLEAN DEFAULT FALSE
         )
     ''')
+    
+    # Check if role column exists (migration)
+    try:
+        c.execute("SELECT role FROM users LIMIT 1")
+    except psycopg2.errors.UndefinedColumn:
+        conn.rollback()
+        c = conn.cursor()
+        print("Migrating DB: Adding role and has_chat_access columns...")
+        c.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'")
+        c.execute("ALTER TABLE users ADD COLUMN has_chat_access BOOLEAN DEFAULT FALSE")
+        c.execute("ALTER TABLE users ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    except Exception as e:
+        conn.rollback()
+        c = conn.cursor()
+        print(f"Error checking/migrating role column: {e}")
+
+    # Ensure the default admin exists
+    admin_email = "abhishek@justlearnindia.in"
+    c.execute("SELECT id FROM users WHERE email = %s", (admin_email,))
+    if not c.fetchone():
+        print(f"Creating default admin: {admin_email}")
+        admin_password = generate_password_hash("AdminPassword123!")
+        c.execute('''
+            INSERT INTO users (name, email, password, role, has_chat_access)
+            VALUES (%s, %s, %s, %s, %s)
+        ''', ("Admin Abhishek", admin_email, admin_password, "admin", True))
     
     conn.commit()
     conn.close()
@@ -879,7 +929,7 @@ def login():
     try:
         conn = get_db_connection()
         c = conn.cursor()
-        c.execute('SELECT id, name, email, password FROM users WHERE email = %s', (email,))
+        c.execute('SELECT id, name, email, password, role, has_chat_access FROM users WHERE email = %s', (email,))
         user = c.fetchone()
         conn.close()
 
@@ -891,7 +941,9 @@ def login():
                 'user': {
                     'id': user[0],
                     'name': user[1],
-                    'email': user[2]
+                    'email': user[2],
+                    'role': user[4],
+                    'has_chat_access': user[5]
                 }
             }), 200
         else:
@@ -992,6 +1044,223 @@ def reset_password():
     except Exception as e:
         print(f"Reset password error: {e}")
         return jsonify({'error': 'Password reset failed. Please try again.', 'success': False}), 500
+
+# --- Admin Endpoints ---
+
+def admin_required(f):
+    """Decorator to require admin role."""
+    from functools import wraps
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user_id = request.args.get('admin_id') or request.get_json().get('admin_id')
+        if not user_id:
+            return jsonify({'error': 'Admin ID is required', 'success': False}), 401
+        
+        try:
+            conn = get_db_connection()
+            c = conn.cursor()
+            c.execute('SELECT role FROM users WHERE id = %s', (user_id,))
+            user = c.fetchone()
+            conn.close()
+            
+            if not user or user[0] != 'admin':
+                return jsonify({'error': 'Admin privilege required', 'success': False}), 403
+        except Exception as e:
+            return jsonify({'error': str(e), 'success': False}), 500
+            
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/api/admin/users', methods=['GET'])
+@admin_required
+def get_all_users():
+    try:
+        conn = get_db_connection()
+        c = conn.cursor(cursor_factory=RealDictCursor)
+        c.execute('SELECT id, name, email, role, has_chat_access, created_at FROM users ORDER BY created_at DESC')
+        users = c.fetchall()
+        conn.close()
+        return jsonify({'success': True, 'users': users})
+    except Exception as e:
+        return jsonify({'error': str(e), 'success': False}), 500
+
+@app.route('/api/admin/create-admin', methods=['POST'])
+@admin_required
+def create_admin():
+    data = request.get_json()
+    email = data.get('email', '').strip()
+    password = data.get('password', '')
+    name = data.get('name', 'Admin').strip()
+    
+    if not email or not password:
+        return jsonify({'error': 'Email and password are required', 'success': False}), 400
+        
+    hashed_pw = generate_password_hash(password)
+    
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute('''
+            INSERT INTO users (name, email, password, role, has_chat_access)
+            VALUES (%s, %s, %s, 'admin', True)
+        ''', (name, email, hashed_pw))
+        conn.commit()
+        conn.close()
+        return jsonify({'message': 'Admin created successfully', 'success': True})
+    except psycopg2.IntegrityError:
+        return jsonify({'error': 'Email already exists', 'success': False}), 409
+    except Exception as e:
+        return jsonify({'error': str(e), 'success': False}), 500
+
+@app.route('/api/admin/grant-access', methods=['POST'])
+@admin_required
+def grant_access():
+    data = request.get_json()
+    user_email = data.get('email', '').strip()
+    has_access = data.get('has_access', True)
+    temporary_password = data.get('temporary_password') # Optional if user already exists
+    
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        # Check if user exists
+        c.execute('SELECT id FROM users WHERE email = %s', (user_email,))
+        user = c.fetchone()
+        
+        if not user:
+            if not temporary_password:
+                return jsonify({'error': 'User does not exist and no temporary password provided', 'success': False}), 400
+            
+            # Create user if doesn't exist
+            hashed_pw = generate_password_hash(temporary_password)
+            c.execute('''
+                INSERT INTO users (name, email, password, has_chat_access)
+                VALUES (%s, %s, %s, %s)
+            ''', (user_email.split('@')[0], user_email, hashed_pw, has_access))
+            message = "User created and access granted"
+        else:
+            # Update existing user
+            c.execute('UPDATE users SET has_chat_access = %s WHERE email = %s', (has_access, user_email))
+            message = f"Access {'granted' if has_access else 'revoked'} successfully"
+            
+        conn.commit()
+        conn.close()
+        return jsonify({'message': message, 'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e), 'success': False}), 500
+
+@app.route('/api/admin/analytics', methods=['GET'])
+@admin_required
+def get_analytics():
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        # Total users
+        c.execute('SELECT COUNT(*) FROM users')
+        total_users = c.fetchone()[0]
+        
+        # Users used today
+        c.execute('''
+            SELECT COUNT(DISTINCT user_id) 
+            FROM conversations 
+            WHERE timestamp >= CURRENT_DATE
+        ''')
+        today_users = c.fetchone()[0]
+        
+        # Total conversations
+        c.execute('SELECT COUNT(*) FROM conversations')
+        total_convs = c.fetchone()[0]
+        
+        # Convs today
+        c.execute('SELECT COUNT(*) FROM conversations WHERE timestamp >= CURRENT_DATE')
+        today_convs = c.fetchone()[0]
+        
+        conn.close()
+        return jsonify({
+            'success': True,
+            'analytics': {
+                'total_users': total_users,
+                'today_users': today_users,
+                'total_conversations': total_convs,
+                'today_conversations': today_convs
+            }
+        })
+    except Exception as e:
+        return jsonify({'error': str(e), 'success': False}), 500
+
+@app.route('/api/admin/conversations', methods=['GET'])
+@admin_required
+def get_all_conversations():
+    try:
+        limit = request.args.get('limit', 50)
+        offset = request.args.get('offset', 0)
+        
+        conn = get_db_connection()
+        c = conn.cursor(cursor_factory=RealDictCursor)
+        c.execute('''
+            SELECT c.id, c.user_id, u.name as user_name, u.email as user_email, 
+                   c.question, c.answer, c.timestamp 
+            FROM conversations c 
+            JOIN users u ON c.user_id = u.id 
+            ORDER BY c.timestamp DESC 
+            LIMIT %s OFFSET %s
+        ''', (limit, offset))
+        conversations = c.fetchall()
+        conn.close()
+        
+        return jsonify({'success': True, 'conversations': conversations})
+    except Exception as e:
+        return jsonify({'error': str(e), 'success': False}), 500
+
+@app.route('/api/admin/conversation-users', methods=['GET'])
+@admin_required
+def get_conversation_users():
+    try:
+        conn = get_db_connection()
+        c = conn.cursor(cursor_factory=RealDictCursor)
+        c.execute('''
+            SELECT u.id, u.name, u.email, 
+                   COUNT(c.id) as conversation_count, 
+                   MAX(c.timestamp) as last_active
+            FROM users u
+            JOIN conversations c ON u.id = c.user_id
+            GROUP BY u.id, u.name, u.email
+            ORDER BY last_active DESC
+        ''')
+        users = c.fetchall()
+        conn.close()
+        return jsonify({'success': True, 'users': users})
+    except Exception as e:
+        return jsonify({'error': str(e), 'success': False}), 500
+
+@app.route('/api/admin/user-conversations/<int:user_id>', methods=['GET'])
+@admin_required
+def get_specific_user_conversations(user_id):
+    try:
+        conn = get_db_connection()
+        c = conn.cursor(cursor_factory=RealDictCursor)
+        c.execute('''
+            SELECT id, question, answer, timestamp, session_id
+            FROM conversations 
+            WHERE user_id = %s
+            ORDER BY timestamp DESC
+        ''', (user_id,))
+        conversations = c.fetchall()
+        
+        # Get user info too
+        c.execute('SELECT name, email FROM users WHERE id = %s', (user_id,))
+        user_info = c.fetchone()
+        
+        conn.close()
+        return jsonify({
+            'success': True, 
+            'conversations': conversations,
+            'user': user_info
+        })
+    except Exception as e:
+        return jsonify({'error': str(e), 'success': False}), 500
 
 if __name__ == '__main__':
     print("\n" + "="*70)
