@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     GITA_EMOTIONS_FILE: str = "data/gita_emotions.json"
     GITA_HINDI_FILE: str = "data/gita_hindi.json"
     EMBEDDINGS_FILE: str = "models/gita_embeddings.pkl"
+    MODEL_CACHE_DIR: Optional[str] = os.getenv("FASTEMBED_CACHE_PATH", "models")
     TFIDF_MODEL_FILE: str = "models/gita_tfidf.pkl"
     
     # Model configuration

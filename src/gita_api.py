@@ -162,7 +162,10 @@ class GitaAPI:
         """Lazy load semantic model only when needed."""
         if self.semantic_model is None:
             logger.info(f"Loading Semantic Model: {settings.SENTENCE_TRANSFORMER_MODEL} (first time only)...")
-            self.semantic_model = TextEmbedding(model_name=settings.SENTENCE_TRANSFORMER_MODEL)
+            self.semantic_model = TextEmbedding(
+                model_name=settings.SENTENCE_TRANSFORMER_MODEL,
+                cache_dir=settings.MODEL_CACHE_DIR
+            )
             logger.info("Semantic model loaded successfully")
 
     def _understand_query(self, query: str) -> Dict[str, str]:

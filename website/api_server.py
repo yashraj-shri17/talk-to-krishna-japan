@@ -153,7 +153,7 @@ def _generate_audio_async(text: str) -> str:
 
 app = Flask(__name__)
 
-# CORS configuration for production
+# CORS configuration
 from dotenv import load_dotenv
 import re
 
@@ -167,18 +167,17 @@ allowed_origins = [
 ]
 
 if frontend_url:
-    # Add the provided URL and ensure versions with/without trailing slash are handled
     normalized_url = frontend_url.rstrip('/')
-    allowed_origins.append(normalized_url)
-    allowed_origins.append(f"{normalized_url}/")
-    print(f"CORS: Allowed origins includes {normalized_url}")
-else:
-    # Fallback to allow regex pattern match if no specific URL is provided during dry-runs
-    # but still prioritize security by not using '*'
-    print("CORS: Warning - FRONTEND_URL not set, falling back to permissive mode")
-    allowed_origins.append(re.compile(r'.*'))
+    allowed_origins.extend([normalized_url, f"{normalized_url}/"])
 
 CORS(app, origins=allowed_origins, supports_credentials=True)
+
+@app.before_request
+def log_request_info():
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] {request.method} {request.path} from {request.remote_addr}")
+    if request.headers.get('Origin'):
+        print(f"  Origin: {request.headers.get('Origin')}")
+
 
 # Initialize GitaAPI once
 print("Initializing Talk to Krishna API...")
@@ -547,13 +546,20 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://neondb_owner:npg_AIJ
 
 def get_db_connection():
     max_retries = 5
-    base_delay = 1
+    base_delay = 0.5
+    
+    start_time = time.time()
+    last_error = None
     
     for attempt in range(max_retries):
         try:
             conn = psycopg2.connect(DATABASE_URL)
+            elapsed = time.time() - start_time
+            if elapsed > 1.0:
+                print(f"  DB Connect took {elapsed:.2f}s")
             return conn
         except psycopg2.OperationalError as e:
+            last_error = e
             if attempt == max_retries - 1:
                 print(f"Database connection error (Failed after {max_retries} attempts): {e}")
                 raise e
@@ -677,6 +683,10 @@ def init_db():
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    
+    # Add index for timestamp and user_id to speed up analytics
+    c.execute('CREATE INDEX IF NOT EXISTS idx_conversations_timestamp ON conversations(timestamp)')
+    c.execute('CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id)')
     
     # Check if session_id column exists (migration for existing DB)
     try:
