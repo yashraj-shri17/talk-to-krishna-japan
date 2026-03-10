@@ -16,6 +16,7 @@ const Footer = () => {
                     </div>
                     <div className="footer-links">
                         <Link to="/about">私たちについて</Link>
+                        <Link to="/pricing">料金プラン</Link>
                         <Link to="/contact">お問い合わせ</Link>
                         <Link to="/privacy">プライバシー</Link>
                         <Link to="/login">ログイン</Link>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import './App.css'; // Global styles
 
 // Pages
@@ -12,6 +12,8 @@ import ResetPassword from './pages/ResetPassword';
 import Profile from './pages/Profile';
 import Contact from './pages/Contact';
 import Privacy from './pages/Privacy';
+import Pricing from './pages/Pricing';
+import Checkout from './pages/Checkout';
 import AdminDashboard from './pages/AdminDashboard';
 import VoiceChat from './components/VoiceChat';
 import ScrollToTop from './components/ScrollToTop';
@@ -40,6 +42,7 @@ function App() {
                                 <Route path="/" element={<Home />} />
                                 <Route path="/about" element={<About />} />
                                 <Route path="/contact" element={<Contact />} />
+                                <Route path="/pricing" element={<Pricing />} />
                                 <Route path="/privacy" element={<Privacy />} />
                                 <Route path="/login" element={<Login />} />
                                 <Route path="/signup" element={<Signup />} />
@@ -50,10 +53,11 @@ function App() {
                                 <Route element={<ProtectedRoute />}>
                                     <Route path="/chat" element={<VoiceChat />} />
                                     <Route path="/profile" element={<Profile />} />
+                                    <Route path="/checkout" element={<Checkout />} />
                                     <Route path="/admin" element={<AdminDashboard />} />
                                 </Route>
                             </Routes>
-                            <Footer />
+                            <FooterWrapper />
                         </div>
                     </div>
                 </Router>
@@ -61,5 +65,12 @@ function App() {
         </ThemeProvider>
     );
 }
+
+// Wrapper to use useLocation
+const FooterWrapper = () => {
+    const location = useLocation();
+    if (location.pathname === '/admin') return null;
+    return <Footer />;
+};
 
 export default App;

@@ -51,6 +51,7 @@ function Navbar() {
                 <div className={`navbar-links ${isOpen ? 'active' : ''}`}>
                     <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`} onClick={closeMenu}>ホーム</Link>
                     <Link to="/about" className={`nav-link ${location.pathname === '/about' ? 'active' : ''}`} onClick={closeMenu}>私たちについて</Link>
+                    <Link to="/pricing" className={`nav-link ${location.pathname === '/pricing' ? 'active' : ''}`} onClick={closeMenu}>料金プラン</Link>
                     <Link to="/contact" className={`nav-link ${location.pathname === '/contact' ? 'active' : ''}`} onClick={closeMenu}>お問い合わせ</Link>
                     <Link to="/privacy" className={`nav-link ${location.pathname === '/privacy' ? 'active' : ''}`} onClick={closeMenu}>プライバシー</Link>
 

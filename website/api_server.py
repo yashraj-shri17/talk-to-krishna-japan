@@ -640,6 +640,31 @@ def init_db():
         )
     ''')
     
+    # Coupons table
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS coupons (
+            id SERIAL PRIMARY KEY,
+            code TEXT UNIQUE NOT NULL,
+            discount_type TEXT DEFAULT 'free_access',
+            discount_value NUMERIC DEFAULT 0,
+            is_active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # Migration for coupons table: add discount_value if it doesn't exist
+    try:
+        c.execute("SELECT discount_value FROM coupons LIMIT 1")
+    except psycopg2.errors.UndefinedColumn:
+        conn.rollback()
+        c = conn.cursor()
+        print("Migrating DB: Adding discount_value column to coupons table...")
+        c.execute('ALTER TABLE coupons ADD COLUMN discount_value NUMERIC DEFAULT 0')
+    except Exception as e:
+        conn.rollback()
+        c = conn.cursor()
+        print(f"Error checking/migrating discount_value column: {e}")
+    
     # Conversations table
     c.execute('''
         CREATE TABLE IF NOT EXISTS conversations (
@@ -1259,6 +1284,106 @@ def get_specific_user_conversations(user_id):
             'conversations': conversations,
             'user': user_info
         })
+    except Exception as e:
+        return jsonify({'error': str(e), 'success': False}), 500
+
+@app.route('/api/admin/coupons', methods=['GET'])
+@admin_required
+def get_coupons():
+    try:
+        conn = get_db_connection()
+        c = conn.cursor(cursor_factory=RealDictCursor)
+        c.execute('SELECT id, code, discount_type, discount_value, is_active, created_at FROM coupons ORDER BY created_at DESC')
+        coupons = c.fetchall()
+        conn.close()
+        return jsonify({'success': True, 'coupons': coupons})
+    except Exception as e:
+        return jsonify({'error': str(e), 'success': False}), 500
+
+@app.route('/api/admin/coupons', methods=['POST'])
+@admin_required
+def add_coupon():
+    data = request.get_json()
+    code = data.get('code', '').strip().upper()
+    discount_type = data.get('discount_type', 'free_access')
+    discount_value = data.get('discount_value', 0)
+    
+    if not code:
+        return jsonify({'error': 'Coupon code is required', 'success': False}), 400
+        
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute('''
+            INSERT INTO coupons (code, discount_type, discount_value, is_active)
+            VALUES (%s, %s, %s, TRUE)
+        ''', (code, discount_type, discount_value))
+        conn.commit()
+        conn.close()
+        return jsonify({'message': 'Coupon added successfully', 'success': True})
+    except psycopg2.IntegrityError:
+        return jsonify({'error': 'Coupon code already exists', 'success': False}), 409
+    except Exception as e:
+        return jsonify({'error': str(e), 'success': False}), 500
+
+@app.route('/api/validate-coupon', methods=['POST'])
+def validate_coupon():
+    try:
+        data = request.get_json()
+        code = data.get('code', '').strip().upper()
+        
+        if not code:
+            return jsonify({'error': 'Coupon code is required', 'success': False}), 400
+            
+        conn = get_db_connection()
+        c = conn.cursor(cursor_factory=RealDictCursor)
+        c.execute('SELECT code, discount_type, discount_value, is_active FROM coupons WHERE code = %s', (code,))
+        coupon = c.fetchone()
+        conn.close()
+        
+        if not coupon:
+            return jsonify({'error': 'Invalid coupon code', 'success': False}), 404
+            
+        if not coupon['is_active']:
+            return jsonify({'error': 'Coupon is no longer active', 'success': False}), 400
+            
+        return jsonify({
+            'success': True, 
+            'coupon': {
+                'code': coupon['code'],
+                'discount_type': coupon['discount_type'],
+                'discount_value': float(coupon['discount_value']) if coupon['discount_value'] else 0
+            }
+        })
+    except Exception as e:
+        return jsonify({'error': str(e), 'success': False}), 500
+
+@app.route('/api/admin/coupons/<int:coupon_id>/toggle', methods=['POST'])
+@admin_required
+def toggle_coupon_status(coupon_id):
+    try:
+        data = request.get_json()
+        is_active = data.get('is_active')
+        
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute('UPDATE coupons SET is_active = %s WHERE id = %s', (is_active, coupon_id))
+        conn.commit()
+        conn.close()
+        return jsonify({'message': f'Coupon {"activated" if is_active else "deactivated"} successfully', 'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e), 'success': False}), 500
+
+@app.route('/api/admin/coupons/<int:coupon_id>', methods=['DELETE'])
+@admin_required
+def delete_coupon(coupon_id):
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute('DELETE FROM coupons WHERE id = %s', (coupon_id,))
+        conn.commit()
+        conn.close()
+        return jsonify({'message': 'Coupon deleted successfully', 'success': True})
     except Exception as e:
         return jsonify({'error': str(e), 'success': False}), 500
 

@@ -181,6 +181,13 @@
     font-size: 1.5rem;
     font-weight: 700;
     margin: 0;
+    white-space: nowrap;
+}
+
+.admin-user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .admin-content-scroll {
@@ -262,6 +269,8 @@
 
 .control-group {
     margin-bottom: 2rem;
+    display: flex;
+    flex-direction: column;
 }
 
 .control-group label {
@@ -318,7 +327,8 @@
     background: rgba(255, 255, 255, 0.01);
     border: 1px solid var(--admin-panel-border);
     border-radius: 24px;
-    overflow: hidden;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .glass-table {
@@ -518,6 +528,110 @@
         border-bottom: 1px solid var(--admin-panel-border);
         flex-direction: row;
         overflow-x: auto;
-        padding: 0.75rem;
+        padding: 0.75rem 1rem;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        justify-content: space-between;
+    }
+
+    .admin-sidebar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .nav-group {
+        flex-direction: row;
+        gap: 0.5rem;
+    }
+
+    .nav-item {
+        padding: 0.6rem 1rem;
+        white-space: nowrap;
+        font-size: 0.85rem;
+        flex-shrink: 0;
+    }
+
+    .admin-content-scroll {
+        padding: 1.5rem;
+    }
+
+    .form-panel {
+        padding: 1.5rem;
+    }
+
+    .main-top-bar {
+        padding: 1rem 1.5rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .main-top-bar h2 {
+        font-size: 1.1rem;
+        letter-spacing: 0.02em;
+    }
+
+    .admin-user-info {
+        width: 100%;
+        justify-content: flex-start;
+        font-size: 0.85rem;
+    }
+
+    .admin-user-info span:last-child {
+        margin-left: 0.5rem !important;
+    }
+
+    /* Coupon Form Responsive */
+    .coupon-form {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 1.5rem;
+    }
+
+    .coupon-submit-wrapper {
+        width: 100%;
+    }
+
+    .coupon-submit-btn {
+        width: 100%;
+    }
+}
+
+/* Coupon Form Styles */
+.coupon-form {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-end;
+}
+
+.coupon-form .control-group {
+    flex: 1;
+    margin: 0;
+}
+
+.coupon-submit-btn {
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0 2rem;
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+    }
+
+    .glass-table th,
+    .glass-table td {
+        padding: 1rem;
+    }
+
+    .nav-item {
+        padding: 0.5rem 0.75rem;
     }
 }
