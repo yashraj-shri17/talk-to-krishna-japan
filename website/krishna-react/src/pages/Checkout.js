@@ -5,7 +5,7 @@ import axios from 'axios';
 import { Check, Ticket, ShieldCheck, ArrowRight, X } from 'lucide-react';
 import './Checkout.css';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function Checkout() {
     const location = useLocation();
