@@ -460,7 +460,7 @@ const AdminDashboard = () => {
     );
 
     return (
-        <div className="admin-dashboard">
+        <div className="admin-dashboard" data-theme="dark">
             <div className="admin-container">
                 <div className="admin-shell">
                     {/* Sidebar */}

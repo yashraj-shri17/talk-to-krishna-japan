@@ -3,7 +3,7 @@
   Aesthetics: Deep Space, Glassmorphism, Neon Accents, Ultra-Premium
 */
 
-:root {
+.admin-dashboard {
     --admin-primary: #6366f1;
     --admin-secondary: #a855f7;
     --admin-accent: #22d3ee;
@@ -11,7 +11,7 @@
     --admin-success: #10b981;
     --admin-warning: #f59e0b;
 
-    /* Dark Theme (Default) */
+    /* Dark Theme (Enforced) */
     --admin-bg-base: #020617;
     --admin-panel-bg: rgba(15, 23, 42, 0.65);
     --admin-panel-border: rgba(255, 255, 255, 0.08);
@@ -20,14 +20,7 @@
     --admin-glow: rgba(99, 102, 241, 0.15);
 }
 
-[data-theme='light'] {
-    --admin-bg-base: #f1f5f9;
-    --admin-panel-bg: rgba(255, 255, 255, 0.85);
-    --admin-panel-border: rgba(0, 0, 0, 0.08);
-    --admin-text-main: #0f172a;
-    --admin-text-sub: #475569;
-    --admin-glow: rgba(79, 70, 229, 0.1);
-}
+/* Light mode overrides removed to keep Admin Dashboard dark only */
 
 /* Background Animation */
 .admin-dashboard::before {
@@ -93,14 +86,11 @@
 .admin-sidebar {
     width: 280px;
     border-right: 1px solid var(--admin-panel-border);
-    background: rgba(0, 0, 0, 0.02);
+    background: rgba(0, 0, 0, 0.15);
+    /* Slightly darker for depth */
     display: flex;
     flex-direction: column;
     padding: 2rem 1rem;
-}
-
-[data-theme='dark'] .admin-sidebar {
-    background: rgba(0, 0, 0, 0.1);
 }
 
 .sidebar-header {
@@ -139,11 +129,6 @@
 }
 
 .nav-item:hover {
-    color: var(--admin-primary);
-    background: rgba(99, 102, 241, 0.08);
-}
-
-[data-theme='dark'] .nav-item:hover {
     color: #fff;
     background: rgba(255, 255, 255, 0.05);
 }
@@ -292,10 +277,6 @@
     transition: all 0.3s ease;
 }
 
-[data-theme='light'] .fancy-input {
-    background: rgba(255, 255, 255, 0.9);
-}
-
 .fancy-input:focus {
     outline: none;
     border-color: var(--admin-primary);
@@ -337,7 +318,7 @@
 }
 
 .glass-table th {
-    background: rgba(0, 0, 0, 0.05);
+    background: rgba(0, 0, 0, 0.2);
     padding: 1.25rem 1.5rem;
     text-align: left;
     font-size: 0.75rem;
@@ -345,10 +326,6 @@
     letter-spacing: 0.1em;
     font-weight: 700;
     color: var(--admin-text-sub);
-}
-
-[data-theme='dark'] .glass-table th {
-    background: rgba(0, 0, 0, 0.2);
 }
 
 .glass-table td {
