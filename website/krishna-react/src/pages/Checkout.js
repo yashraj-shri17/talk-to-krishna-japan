@@ -50,12 +50,12 @@ function Checkout() {
                 setAppliedCoupon(coupon);
                 setCouponCode('');
 
-                // Calculate discount
+                // Calculate discount (Ensuring integer values for Yen)
                 let discountAmount = 0;
                 if (coupon.discount_type === 'percentage') {
-                    discountAmount = (basePriceNum * coupon.discount_value) / 100;
-                } else if (coupon.discount_type === 'fixed') {
-                    discountAmount = coupon.discount_value;
+                    discountAmount = Math.round((basePriceNum * coupon.discount_value) / 100);
+                } else if (coupon.discount_type === 'fixed_value') {
+                    discountAmount = Math.round(coupon.discount_value);
                 } else if (coupon.discount_type === 'free_access') {
                     discountAmount = basePriceNum;
                 }
