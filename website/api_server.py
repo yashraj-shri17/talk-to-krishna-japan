@@ -1081,7 +1081,7 @@ def reset_password():
         return jsonify({'error': 'Password reset failed. Please try again.', 'success': False}), 500
 
 @app.route('/api/grant-access', methods=['POST'])
-def grant_access():
+def grant_chat_access_after_payment():
     """
     Grant chat access to a user after successful payment/checkout.
     Called automatically from frontend after purchase is complete.
