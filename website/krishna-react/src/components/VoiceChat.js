@@ -314,11 +314,8 @@ function VoiceChat() {
         // 2. Set has started to true to show the interface
         setHasStarted(true);
 
-        // 3. Send welcome message
-        const isEng = selectedLanguage === 'english';
-        const welcomeText = isEng
-            ? 'Radhe Radhe! I am Lord Krishna. How may I guide you today?'
-            : 'ラーデー・ラーデー！私はクリシュナです。何かお手伝いできることはありますか？';
+        // Always welcome in Japanese since Krishna's speech is now strictly Japanese
+        const welcomeText = 'ラーデー・ラーデー！私はクリシュナです。何かお手伝いできることはありますか？';
 
         const welcomeMsgId = Date.now();
         const welcomeMsg = {

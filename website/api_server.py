@@ -38,9 +38,8 @@ async def _generate_multi_voice_audio(text: str, buffer: io.BytesIO, language: s
     lines = clean_text.split('\n')
     segments = []
     
-    # Heuristic-based language detection per line
-    # Default to Japanese or English voice based on setting
-    default_voice = "ja-JP-KeitaNeural" if language == 'japanese' else "en-IN-PrabhatNeural"
+    # Force default voice to be Japanese as per new requirements
+    default_voice = "ja-JP-KeitaNeural"
     current_voice = default_voice
     current_text_lines = []
     
@@ -66,30 +65,26 @@ async def _generate_multi_voice_audio(text: str, buffer: io.BytesIO, language: s
     if current_text_lines:
         segments.append((current_voice, "\n".join(current_text_lines)))
         
-    # Refine segments to isolate "Chapter X Shloka Y" for English pronunciation
-    # ONLY do this if the language is not Japanese (since for Japanese we want it in Japanese now)
+    # Always isolate "Bhagwat geeta Chapter X Shloka Y" (and variations) for English pronunciation
     refined_segments = []
-    if language != 'japanese':
-        for voice, segment_text in segments:
-            if not segment_text.strip():
+    for voice, segment_text in segments:
+        if not segment_text.strip():
+            continue
+            
+        # Split text, capturing variations like "Bhagwat geeta Chapter X Shloka Y" or just "Chapter X Shloka Y"
+        parts = re.split(r'(?i)((?:Bhagwat\s*geeta[\s,]*)?Chapter\s+\d+(?:[\s,]*Shloka\s+\d+)?)', segment_text)
+        
+        for part in parts:
+            if not part.strip():
+                if part:
+                    refined_segments.append((voice, part))
                 continue
                 
-            # Split text, capturing "Chapter X, Shloka Y"
-            parts = re.split(r'(?i)(Chapter\s+\d+(?:[\s,]*Shloka\s+\d+)?)', segment_text)
-            
-            for part in parts:
-                if not part.strip():
-                    if part:
-                        refined_segments.append((voice, part))
-                    continue
-                    
-                # If this part is the English chapter/shloka reference, use English voice
-                if re.match(r'(?i)^Chapter\s+\d+', part.strip()):
-                    refined_segments.append(("en-IN-PrabhatNeural", part))
-                else:
-                    refined_segments.append((voice, part))
-    else:
-        refined_segments = segments
+            # If this part is the English chapter/shloka reference, use English voice
+            if re.match(r'(?i)^(?:Bhagwat\s*geeta[\s,]*)?Chapter\s+\d+', part.strip()):
+                refined_segments.append(("en-IN-PrabhatNeural", part))
+            else:
+                refined_segments.append((voice, part))
 
     # Generate audio for each segment and append to buffer
     for voice, segment_text in refined_segments:
@@ -322,11 +317,8 @@ def ask_question():
 
         if is_greeting:
             print(f"Greeting detected in API: {question}")
-            greeting_texts = {
-                'japanese': "ラーデー・ラーデー！私はシュリー・クリシュナです。何かお手伝いできることはありますか？",
-                'english': "Radhe Radhe! I am Lord Krishna. How may I guide you today?"
-            }
-            greeting_text = greeting_texts.get(language, greeting_texts['japanese'])
+            # Always return greeting in Japanese as per user request
+            greeting_text = "ラーデー・ラーデー！私はシュリー・クリシュナです。何かお手伝いできることはありますか？"
             response = {
                 'success': True,
                 'answer': greeting_text,
