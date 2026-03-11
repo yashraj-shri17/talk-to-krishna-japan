@@ -1034,13 +1034,17 @@ Output Format: ["ID1", "ID2", "ID3", ...]"""
         logger.info(f"✅ Allowing query (default pass): '{query}'")
         return True, ""
 
-    def search_with_llm(self, query: str, conversation_history: List[Dict] = None, **kwargs) -> Dict[str, Any]:
+    def search_with_llm(self, query: str, conversation_history: List[Dict] = None, language: str = 'japanese', **kwargs) -> Dict[str, Any]:
         """End-to-end RAG answer with conversation context."""
         
         # 0. Check for Greeting
         if self._is_greeting(query):
+             greeting_texts = {
+                 'japanese': "ラーデー・ラーデー！私はシュリー・クリシュナです。何かお手伝いできることはありますか？",
+                 'english': "Radhe Radhe! I am Lord Krishna. How may I guide you today?"
+             }
              return {
-                 "answer": "ラーデー・ラーデー！私はシュリー・クリシュナです。何かお手伝いできることはありますか？",
+                 "answer": greeting_texts.get(language, greeting_texts['japanese']),
                  "shlokas": [],
                  "llm_used": True
              }
@@ -1061,16 +1065,12 @@ Output Format: ["ID1", "ID2", "ID3", ...]"""
         
         if not understanding.get('is_relevant', True):
             logger.warning(f"Rejecting irrelevant query (AI): '{query}'")
+            rejection_text = "申し訳ありません。私はシュリー・クリシュナであり、人生の悩み、精神性、そしてバガヴァッド・ギーターの知恵についてのみ導きを与えることができます。\n\n以下のことについて質問してください：\n• 人生の悩み（怒り、恐れ、不安など）の解決\n• カルマ、ダルマ、そして魂について\n• 人間関係や感情について\n• 瞑想、心の平和、そして自己成長について\n\nこれらのトピックについて質問してください。"
+            if language == 'english':
+                rejection_text = "I am sorry, I am Lord Krishna, and I can only guide you on life's problems, spirituality, and the wisdom of the Bhagavad Gita.\n\nPlease ask about:\n• Solving life's issues (anger, fear, anxiety, etc.)\n• Karma, Dharma, and the Soul\n• Relationships and emotions\n• Meditation, inner peace, and self-growth"
+            
             return {
-                "answer": """申し訳ありません。私はシュリー・クリシュナであり、人生の悩み、精神性、そしバガヴァッド・ギーターの知恵についてのみ導きを与えることができます。
-
-以下のことについて質問してください：
-• 人生の悩み（怒り、恐れ、不安など）の解決
-• カルマ、ダルマ、そして魂について
-• 人間関係や感情について
-• 瞑想、心の平和、そして自己成長について
-
-これらのトピックについて質問してください。""",
+                "answer": rejection_text,
                 "shlokas": [],
                 "llm_used": False,
                 "rejected": True
@@ -1104,7 +1104,8 @@ Output Format: ["ID1", "ID2", "ID3", ...]"""
             query, 
             shlokas, 
             conversation_history=conversation_history or [],
-            tone=tone
+            tone=tone,
+            language=language
         )
 
     # Legacy wrappers for compatibility

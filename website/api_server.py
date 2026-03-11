@@ -27,11 +27,9 @@ if not os.path.exists(AUDIO_DIR):
 audio_cache = {}
 import threading
 
-async def _generate_multi_voice_audio(text: str, buffer: io.BytesIO):
+async def _generate_multi_voice_audio(text: str, buffer: io.BytesIO, language: str = 'japanese'):
     """
     Detect language parts and generate audio using multiple voices sequentially.
-    - Japanese parts: ja-JP-KeitaNeural (Male)
-    - Sanskrit/Hindi parts: hi-IN-MadhurNeural (Male)
     """
     import re
     # Clean text but keep structure for language detection
@@ -41,8 +39,9 @@ async def _generate_multi_voice_audio(text: str, buffer: io.BytesIO):
     segments = []
     
     # Heuristic-based language detection per line
-    # Default to Japanese voice
-    current_voice = "ja-JP-KeitaNeural"
+    # Default to Japanese or English voice based on setting
+    default_voice = "ja-JP-KeitaNeural" if language == 'japanese' else "en-IN-PrabhatNeural"
+    current_voice = default_voice
     current_text_lines = []
     
     for line in lines:
@@ -54,7 +53,7 @@ async def _generate_multi_voice_audio(text: str, buffer: io.BytesIO):
             
         # Any Devanagari character triggers Hindi voice for the line
         has_devanagari = any('\u0900' <= char <= '\u097F' for char in stripped)
-        target_voice = "hi-IN-MadhurNeural" if has_devanagari else "ja-JP-KeitaNeural"
+        target_voice = "hi-IN-MadhurNeural" if has_devanagari else default_voice
         
         if target_voice != current_voice:
             if current_text_lines:
@@ -68,26 +67,29 @@ async def _generate_multi_voice_audio(text: str, buffer: io.BytesIO):
         segments.append((current_voice, "\n".join(current_text_lines)))
         
     # Refine segments to isolate "Chapter X Shloka Y" for English pronunciation
+    # ONLY do this if the language is not Japanese (since for Japanese we want it in Japanese now)
     refined_segments = []
-    for voice, segment_text in segments:
-        if not segment_text.strip():
-            continue
-            
-        # Split text, capturing "Chapter X, Shloka Y"
-        parts = re.split(r'(?i)(Chapter\s+\d+(?:[\s,]*Shloka\s+\d+)?)', segment_text)
-        
-        for part in parts:
-            if not part.strip():
-                # If it's just whitespace, we can append it with the current voice or skip
-                if part:
-                    refined_segments.append((voice, part))
+    if language != 'japanese':
+        for voice, segment_text in segments:
+            if not segment_text.strip():
                 continue
                 
-            # If this part is the English chapter/shloka reference, use English voice
-            if re.match(r'(?i)^Chapter\s+\d+', part.strip()):
-                refined_segments.append(("en-IN-PrabhatNeural", part))
-            else:
-                refined_segments.append((voice, part))
+            # Split text, capturing "Chapter X, Shloka Y"
+            parts = re.split(r'(?i)(Chapter\s+\d+(?:[\s,]*Shloka\s+\d+)?)', segment_text)
+            
+            for part in parts:
+                if not part.strip():
+                    if part:
+                        refined_segments.append((voice, part))
+                    continue
+                    
+                # If this part is the English chapter/shloka reference, use English voice
+                if re.match(r'(?i)^Chapter\s+\d+', part.strip()):
+                    refined_segments.append(("en-IN-PrabhatNeural", part))
+                else:
+                    refined_segments.append((voice, part))
+    else:
+        refined_segments = segments
 
     # Generate audio for each segment and append to buffer
     for voice, segment_text in refined_segments:
@@ -104,7 +106,7 @@ async def _generate_multi_voice_audio(text: str, buffer: io.BytesIO):
             if chunk["type"] == "audio":
                 buffer.write(chunk["data"])
 
-def _generate_audio_async(text: str) -> str:
+def _generate_audio_async(text: str, language: str = 'japanese') -> str:
     """
     Generate audio asynchronously and cache it.
     Returns audio_id immediately while generation happens in background.
@@ -127,7 +129,7 @@ def _generate_audio_async(text: str) -> str:
             
             # Run async generation with multi-voice support
             tts_start = time.time()
-            asyncio.run(_generate_multi_voice_audio(text, audio_buffer))
+            asyncio.run(_generate_multi_voice_audio(text, audio_buffer, language))
             tts_time = time.time() - tts_start
             
             # Reset buffer pointer
@@ -219,6 +221,7 @@ def ask_question():
         user_id = data.get('user_id')  # Optional: for logged-in users
         
         session_id = data.get('session_id')  # New: Session ID for context filtering
+        language = data.get('language', 'japanese') # 'japanese' or 'english'
         
         # Check chat access for logged-in users
         if user_id:
@@ -319,7 +322,11 @@ def ask_question():
 
         if is_greeting:
             print(f"Greeting detected in API: {question}")
-            greeting_text = "ラーデー・ラーデー！私はシュリー・クリシュナです。何かお手伝いできることはありますか？"
+            greeting_texts = {
+                'japanese': "ラーデー・ラーデー！私はシュリー・クリシュナです。何かお手伝いできることはありますか？",
+                'english': "Radhe Radhe! I am Lord Krishna. How may I guide you today?"
+            }
+            greeting_text = greeting_texts.get(language, greeting_texts['japanese'])
             response = {
                 'success': True,
                 'answer': greeting_text,
@@ -333,7 +340,7 @@ def ask_question():
             
             # Generate audio if requested
             if include_audio:
-                audio_id = _generate_audio_async(greeting_text)
+                audio_id = _generate_audio_async(greeting_text, language)
                 response['audio_url'] = f'/api/audio/{audio_id}'
                 print(f"Greeting audio generated: {audio_id}")
             
@@ -350,7 +357,7 @@ def ask_question():
         # Get answer from GitaAPI with NO conversation context (1 Q = 1 ans requested by user)
         import time
         start_time = time.time()
-        result = gita_api.search_with_llm(question, conversation_history=[])
+        result = gita_api.search_with_llm(question, conversation_history=[], language=language)
         llm_time = time.time() - start_time
         
         answer_text = result.get('answer')
@@ -384,7 +391,7 @@ def ask_question():
         # Generate audio in parallel if requested
         if include_audio and answer_text:
             audio_start = time.time()
-            audio_id = _generate_audio_async(answer_text)
+            audio_id = _generate_audio_async(answer_text, language)
             audio_time = time.time() - audio_start
             response['audio_url'] = f'/api/audio/{audio_id}'
             print(f"Timing: LLM={llm_time:.2f}s, Audio={audio_time:.2f}s")
@@ -408,6 +415,7 @@ def speak_text():
     try:
         data = request.get_json()
         text = data.get('text', '').strip()
+        language = data.get('language', 'japanese')
         
         if not text:
             return jsonify({'error': 'No text provided'}), 400
@@ -416,7 +424,7 @@ def speak_text():
         audio_buffer = io.BytesIO()
         
         # Run async generation with multi-voice support
-        asyncio.run(_generate_multi_voice_audio(text, audio_buffer))
+        asyncio.run(_generate_multi_voice_audio(text, audio_buffer, language))
 
         # Reset buffer pointer to beginning
         audio_buffer.seek(0)
@@ -443,6 +451,7 @@ def transcribe_audio():
             return jsonify({'error': 'No audio file provided', 'success': False}), 400
         
         audio_file = request.files['audio']
+        language = request.form.get('language', 'japanese')
         
         # Save temp file
         temp_path = os.path.join(AUDIO_DIR, f"temp_{uuid.uuid4()}.webm")
@@ -450,10 +459,14 @@ def transcribe_audio():
         
         # Call Groq
         with open(temp_path, "rb") as file:
+            prompt_str = "The user is speaking in Japanese, Hindi, or English. Please transcribe Japanese in Kanji/Kana and Hindi in Devanagari script. ラーデー・ラーデー、お元気ですか？ नमस्ते, आप कैसे हैं? Hello, how are you?"
+            if language == 'english':
+                prompt_str = "The user is speaking in English. Please transcribe in English. Radhe Radhe, how are you?"
+                
             transcription = gita_api.groq_client.audio.transcriptions.create(
                 file=(audio_file.filename, file.read()),
                 model="whisper-large-v3",
-                prompt="The user is speaking in Japanese, Hindi, or English. Please transcribe Japanese in Kanji/Kana and Hindi in Devanagari script. ラーデー・ラーデー、お元気ですか？ नमस्ते, आप कैसे हैं? Hello, how are you?",
+                prompt=prompt_str,
             )
         
         # Cleanup

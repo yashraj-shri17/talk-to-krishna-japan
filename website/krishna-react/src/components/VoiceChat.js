@@ -21,6 +21,8 @@ function VoiceChat() {
     const [showHistory, setShowHistory] = useState(false);
     const [transcript, setTranscript] = useState('');
     const [hasStarted, setHasStarted] = useState(false);
+    const [showLanguageModal, setShowLanguageModal] = useState(true);
+    const [selectedLanguage, setSelectedLanguage] = useState(null);
     const [activeMessageId, setActiveMessageId] = useState(null);
     const mediaRecorderRef = useRef(null);
     const audioChunksRef = useRef([]);
@@ -178,7 +180,8 @@ function VoiceChat() {
             if (fullUrl) {
                 src = fullUrl;
             } else {
-                const response = await axios.post(API_ENDPOINTS.SPEAK, { text }, { responseType: 'blob' });
+                const languageProp = selectedLanguage || 'japanese';
+                const response = await axios.post(API_ENDPOINTS.SPEAK, { text, language: languageProp }, { responseType: 'blob' });
                 src = URL.createObjectURL(response.data);
             }
 
@@ -212,6 +215,7 @@ function VoiceChat() {
 
         const formData = new FormData();
         formData.append('audio', audioBlob, 'record.webm');
+        formData.append('language', selectedLanguage || 'japanese');
 
         try {
             const res = await axios.post(API_ENDPOINTS.TRANSCRIBE, formData);
@@ -254,7 +258,8 @@ function VoiceChat() {
                 question: text,
                 include_audio: true, // Request audio URL directly
                 session_id: sessionId,
-                user_id: user?.id
+                user_id: user?.id,
+                language: selectedLanguage || 'japanese'
             }, {
                 timeout: 60000
             });
@@ -310,11 +315,16 @@ function VoiceChat() {
         setHasStarted(true);
 
         // 3. Send welcome message
+        const isEng = selectedLanguage === 'english';
+        const welcomeText = isEng
+            ? 'Radhe Radhe! I am Lord Krishna. How may I guide you today?'
+            : 'ラーデー・ラーデー！私はクリシュナです。何かお手伝いできることはありますか？';
+
         const welcomeMsgId = Date.now();
         const welcomeMsg = {
             id: welcomeMsgId,
             type: 'krishna',
-            text: 'ラーデー・ラーデー！私はクリシュナです。何かお手伝いできることはありますか？',
+            text: welcomeText,
             timestamp: new Date()
         };
 
@@ -435,7 +445,9 @@ function VoiceChat() {
 
                 <div className="header-title-container">
                     <span className="logo-icon">🕉️</span>
-                    <span className="header-title">神聖な声</span>
+                    <span className="header-title">
+                        {selectedLanguage === 'english' ? 'Divine Voice' : '神聖な声'}
+                    </span>
                 </div>
 
                 <button
@@ -457,27 +469,78 @@ function VoiceChat() {
                 </button>
             </header>
 
+            {/* Language Selection Modal */}
+            {showLanguageModal && (
+                <div className="language-modal-overlay">
+                    <div className="language-modal">
+                        <div className="language-modal-icon">
+                            <img src="/om-icon.png" alt="OM" className="om-icon-fallback"
+                                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+                            <div className="om-text-fallback" style={{ display: 'none' }}>🕉️</div>
+                        </div>
+                        <h2 className="language-modal-title">Welcome to<br /><span className="highlight">Talk to Krishna</span></h2>
+                        <p className="language-modal-subtitle">Choose the language in which<br />you'd like Lord Krishna to respond</p>
+
+                        <div className="language-options">
+                            <button
+                                className="language-option-btn english-btn"
+                                onClick={() => {
+                                    setSelectedLanguage('english');
+                                    setShowLanguageModal(false);
+                                    unlockAudio();
+                                }}
+                            >
+                                <div className="lang-code">GB</div>
+                                <div className="lang-name">English</div>
+                                <div className="lang-desc">Respond in English</div>
+                            </button>
+
+                            <div className="language-divider">OR</div>
+
+                            <button
+                                className="language-option-btn japanese-btn"
+                                onClick={() => {
+                                    setSelectedLanguage('japanese');
+                                    setShowLanguageModal(false);
+                                    unlockAudio();
+                                }}
+                            >
+                                <div className="lang-code">JP</div>
+                                <div className="lang-name">日本語</div>
+                                <div className="lang-desc">日本語で答える</div>
+                            </button>
+                        </div>
+
+                        <p className="language-modal-footer">You can speak in any language — Krishna will<br />always respond in your chosen language.</p>
+                    </div>
+                </div>
+            )}
+
             {/* Main Voice Interface */}
             <main className="main-content">
                 {!hasStarted && (
                     <div className="hero-section">
                         <h1 className="hero-title">
-                            神聖な <br />
-                            <span className="highlight">導きを求める</span>
+                            {selectedLanguage === 'english' ? 'Seek Divine' : '神聖な'} <br />
+                            <span className="highlight">
+                                {selectedLanguage === 'english' ? 'Guidance' : '導きを求める'}
+                            </span>
                         </h1>
                         <div className="quick-actions">
                             <button className="action-chip active" onClick={handleStartJourney}>
-                                旅を始める
+                                {selectedLanguage === 'english' ? 'Start Journey' : '旅を始める'}
                             </button>
                             <button className="action-chip" onClick={() => setShowHistory(true)}>
-                                履歴
+                                {selectedLanguage === 'english' ? 'History' : '履歴'}
                             </button>
                         </div>
                     </div>
                 )}
 
                 <div className="orb-section">
-                    <h2 className="section-label">魂との対話</h2>
+                    <h2 className="section-label">
+                        {selectedLanguage === 'english' ? 'Dialogue with the Soul' : '魂との対話'}
+                    </h2>
                     <VoiceOrb
                         isListening={isListening}
                         isSpeaking={isSpeaking}
@@ -490,17 +553,27 @@ function VoiceChat() {
                     <div className="status-text" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                         {isListening ? (
                             <>
-                                <span style={{ color: '#fff', fontSize: '1.2rem', textShadow: '0 0 10px rgba(255,255,255,0.5)' }}>あなたの声を聴いています...</span>
+                                <span style={{ color: '#fff', fontSize: '1.2rem', textShadow: '0 0 10px rgba(255,255,255,0.5)' }}>
+                                    {selectedLanguage === 'english' ? 'Listening to your voice...' : 'あなたの声を聴いています...'}
+                                </span>
                                 <span style={{ color: '#ffb347', fontSize: '0.9rem', animation: 'pulse 2s infinite', fontWeight: 'bold' }}>
-                                    (話し終わったら、もう一度マイクをタップしてください)
+                                    {selectedLanguage === 'english' ? '(Tap the mic again when you finish speaking)' : '(話し終わったら、もう一度マイクをタップしてください)'}
                                 </span>
                             </>
                         ) : isSpeaking ? (
-                            <span style={{ color: '#fff' }}>クリシュナが導いています...</span>
+                            <span style={{ color: '#fff' }}>
+                                {selectedLanguage === 'english' ? 'Krishna is guiding...' : 'クリシュナが導いています...'}
+                            </span>
                         ) : isLoading ? (
-                            <span style={{ color: '#fff' }}>{transcript === 'Transcribing...' ? '音声を認識中...' : 'ギーターを探索中...'}</span>
+                            <span style={{ color: '#fff' }}>
+                                {transcript === 'Transcribing...'
+                                    ? (selectedLanguage === 'english' ? 'Recognizing audio...' : '音声を認識中...')
+                                    : (selectedLanguage === 'english' ? 'Exploring the Gita...' : 'ギーターを探索中...')}
+                            </span>
                         ) : (
-                            <span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>{transcript ? `"${transcript}"` : 'タップして接続'}</span>
+                            <span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                                {transcript ? `"${transcript}"` : (selectedLanguage === 'english' ? 'Tap to connect' : 'タップして接続')}
+                            </span>
                         )}
                     </div>
                 </div>

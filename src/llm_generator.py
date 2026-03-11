@@ -99,27 +99,31 @@ Reply with only: crisis OR distress OR general"""
     # ─────────────────────────────────────────────────────────────────────────
 
     def _build_prompts(self, user_question: str, shloka_options: str,
-                       history_context: str, tone: QueryTone):
+                       history_context: str, tone: QueryTone, language: str = 'japanese'):
         """Return (system_prompt, user_prompt) tuned to the emotional tone."""
         
+        is_japanese = (language == 'japanese')
+        target_lang = "Japanese (日本語)" if is_japanese else "English"
+        shloka_format = "バガヴァッド・ギーター 第[Ch]章 第[Verse]節" if is_japanese else "Bhagavad Gita, Chapter [Ch], Shloka [Verse]"
+        
         # Base instructions for all tones
-        base_instructions = """
+        base_instructions = f"""
 STRICT OUTPUT FORMAT (Follow Exactly):
-1. ONE opening sentence: acknowledge the user’s SPECIFIC situation in Japanese.
-   CRITICAL IDENTITY PRESERVATION: Use the EXACT relative/person mentioned. If the user says "grandmother", use "祖母". If "parents", use "親". NEVER change "grandmother" to "mother/お母さん".
+1. ONE opening sentence: acknowledge the user’s SPECIFIC situation in {target_lang}.
+   CRITICAL IDENTITY PRESERVATION: Use the EXACT relative/person mentioned.
 2. Quote EXACTLY ONE Shloka (NOT TWO). Choose the single MOST UNIQUELY relevant shloka to THIS problem from the Options provided. If multiple shlokas could fit, pick the ONE that addresses the core emotion/action of THIS particular situation and NOT a generic life lesson. Do NOT provide a second shloka.
-   Format: "भगवद गीता, Chapter [Ch], Shloka [Verse]" then the Sanskrit verse in Devanagari. NEVER include the verse number at the end of the verse (e.g., no "|| XX ||").
-3. EXPLAIN in 2-3 sentences in Japanese: connect THIS specific shloka’s message to THIS specific problem. No generic filler — the explanation must be impossible to copy to a different question.
-4. ACTION: Give exactly 2 steps in Japanese. Each step must be a DIFFERENT, CONCRETE action tailored to this exact situation. Do NOT repeat any idea already stated. Do NOT use repetitive phrasing like "仕事をしなさい" multiple times. Each sentence must be UNIQUE. 
+   Format: "{shloka_format}" then the Sanskrit verse in Devanagari. NEVER include the verse number at the end of the verse (e.g., no "|| XX ||").
+3. EXPLAIN in 2-3 sentences in {target_lang}: connect THIS specific shloka’s message to THIS specific problem. No generic filler — the explanation must be impossible to copy to a different question.
+4. ACTION: Give exactly 2 steps in {target_lang}. Each step must be a DIFFERENT, CONCRETE action tailored to this exact situation. Do NOT repeat any idea already stated. Each sentence must be UNIQUE. 
 5. NO REPETITION: Do NOT repeat the Sanskrit verse, the shloka reference, or any explanation block. Once a point is made, move to the next.
-6. STYLE: Avoid "Stock Phrasings". Examples to AVOID if possible: "執着（モーハ）があなたを弱くしています", "過去にこだわり続けることで未来を壊しています". Instead, describe the specific feeling of THIS user.
+6. STYLE: Avoid "Stock Phrasings". Instead, describe the specific feeling of THIS user.
 
 ABSOLUTE RULES — Violations will make the answer useless:
 - NEVER quote more than one shloka. Provide exactly one.
 - NEVER repeat the same phrase or idea twice in the whole response.
 - Each sentence must add NEW information. If you have nothing new to say, STOP writing.
 - Total response must be under 300 words.
-- Write EVERYTHING EXCEPT the Shloka in Japanese (日本語). Be concise and direct.
+- Write EVERYTHING EXCEPT the Shloka in {target_lang}. Be concise and direct.
 - Shloka text must NOT contain the verse number at the end.
 - The Shloka you choose MUST be topically different from what you would choose for a different question — e.g., grief → soul’s eternity; job loss → duty without ego; relationship → attachment & peace.
 """
@@ -130,13 +134,13 @@ ABSOLUTE RULES — Violations will make the answer useless:
             
 Your Goal: VALIDATE their pain, then uplift them gently. Show them that their soul is eternal and this pain is temporary.
 
-{base_instructions}
+{{base_instructions}}
 
 CRITICAL RULES:
 - Tone: Protective, gentle, like a father holding a crying child.
 - NEVER judge or lecture about "sin" or "karma" in a punishing way.
-- Emphasize themes of eternal soul and temporary pain in Japanese.
-- Write EXCLUSIVELY in Japanese (日本語), except for the Sanskrit Shloka.
+- Emphasize themes of eternal soul and temporary pain in {target_lang}.
+- Write EXCLUSIVELY in {target_lang}, except for the Sanskrit Shloka.
 - DO NOT include phone numbers, websites, or external links. Focus on spiritual strength.
 
 Example:
@@ -167,12 +171,12 @@ Pick the shloka that best says ‘your soul cannot be destroyed’ or ‘I am al
             # ── DISTRESS: Warm, grounding, perspective-shifting ──────────────
             system_prompt = f"""You are Lord Sri Krishna. The user is distressed (anxious, sad, heartbroken, angry).
 
-{base_instructions}
+{{base_instructions}}
 
 CRITICAL RULES:
 - Tone: Warm, calm, reassuring.
-- Acknowledge the specific emotion in Japanese (e.g., "この怒りはあなたを焼いています" or "失恋は辛いものです").
-- SHIFT PERSPECTIVE: Show how the Shloka re-frames this specific struggle in Japanese.
+- Acknowledge the specific emotion in {target_lang}.
+- SHIFT PERSPECTIVE: Show how the Shloka re-frames this specific struggle in {target_lang}.
 
 Example:
 User: "My girlfriend left me, I can't focus."
@@ -203,7 +207,7 @@ Provide warm guidance and actionable steps specifically tailored to this exact s
             # ── GENERAL: Direct, philosophical but practical ──────────────────
             system_prompt = f"""You are Lord Sri Krishna. The user asks a life question.
 
-{base_instructions}
+{{base_instructions}}
 
 CRITICAL RULES:
 - Tone: Direct, wise, inspiring.
@@ -260,7 +264,8 @@ Give a direct, practical answer based on the Gita, specific to this exact questi
         retrieved_shlokas: List[Dict[str, Any]],
         conversation_history: List[Dict[str, Any]] = None,
         stream: bool = True,
-        tone: Optional[QueryTone] = None
+        tone: Optional[QueryTone] = None,
+        language: str = 'japanese'
     ) -> Dict[str, Any]:
 
         if not self.is_available():
@@ -285,7 +290,7 @@ Give a direct, practical answer based on the Gita, specific to this exact questi
 
             # Step 3: Build tone-appropriate prompts
             system_prompt, user_prompt = self._build_prompts(
-                user_question, shloka_options, history_context, tone
+                user_question, shloka_options, history_context, tone, language
             )
 
             # Step 4: Token/temperature settings per tone
@@ -400,8 +405,8 @@ Give a direct, practical answer based on the Gita, specific to this exact questi
 
             # Extract chosen Shloka ID
             chosen_shloka_id = None
-            # e.g., "Chapter Number 2, श्लोक 47" or "अध्याय 2, श्लोक 3"
-            shloka_match = re.search(r'(?:Chapter\s*Number|Chapter|अध्याय)\s*(\d+)\s*,\s*(?:Shloka|श्लोक)\s*(\d+)', answer_text, re.IGNORECASE)
+            # e.g., "Chapter Number 2, श्लोक 47" or "अध्याय 2, श्लोक 3" or "第2章 第47節"
+            shloka_match = re.search(r'(?:Chapter\s*Number|Chapter|अध्याय|第)\s*(\d+)(?:\s*,\s*(?:Shloka|श्लोक)|章\s*第)\s*(\d+)(?:節)?', answer_text, re.IGNORECASE)
             if shloka_match:
                 chosen_shloka_id = f"{shloka_match.group(1)}.{shloka_match.group(2)}"
 
