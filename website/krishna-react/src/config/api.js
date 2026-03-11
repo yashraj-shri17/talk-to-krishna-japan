@@ -17,6 +17,10 @@ export const API_ENDPOINTS = {
     // Audio (if needed)
     SPEAK: `${API_BASE_URL}/api/speak`,
     TRANSCRIBE: `${API_BASE_URL}/api/transcribe`,
+
+    // Payment & Access
+    GRANT_ACCESS: `${API_BASE_URL}/api/grant-access`,
+    VALIDATE_COUPON: `${API_BASE_URL}/api/validate-coupon`,
 };
 
 export default API_BASE_URL;

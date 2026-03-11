@@ -1080,6 +1080,47 @@ def reset_password():
         print(f"Reset password error: {e}")
         return jsonify({'error': 'Password reset failed. Please try again.', 'success': False}), 500
 
+@app.route('/api/grant-access', methods=['POST'])
+def grant_access():
+    """
+    Grant chat access to a user after successful payment/checkout.
+    Called automatically from frontend after purchase is complete.
+    """
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+
+        if not user_id:
+            return jsonify({'error': 'User ID is required', 'success': False}), 400
+
+        conn = get_db_connection()
+        c = conn.cursor()
+
+        # Verify user exists
+        c.execute('SELECT id, name, email FROM users WHERE id = %s', (user_id,))
+        user = c.fetchone()
+
+        if not user:
+            conn.close()
+            return jsonify({'error': 'User not found', 'success': False}), 404
+
+        # Grant chat access
+        c.execute('UPDATE users SET has_chat_access = TRUE WHERE id = %s', (user_id,))
+        conn.commit()
+        conn.close()
+
+        print(f"✅ Chat access granted to user: {user[2]} (ID: {user_id})")
+        return jsonify({
+            'success': True,
+            'message': 'Chat access granted successfully',
+            'has_chat_access': True
+        }), 200
+
+    except Exception as e:
+        print(f"Grant access error: {e}")
+        return jsonify({'error': 'Failed to grant access. Please try again.', 'success': False}), 500
+
+
 # --- Admin Endpoints ---
 
 def admin_required(f):

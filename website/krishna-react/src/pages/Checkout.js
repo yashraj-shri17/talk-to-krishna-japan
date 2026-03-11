@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import axios from 'axios';
 import { Check, Ticket, ShieldCheck, ArrowRight, X } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { API_ENDPOINTS } from '../config/api';
 import './Checkout.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
@@ -10,6 +12,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 function Checkout() {
     const location = useLocation();
     const navigate = useNavigate();
+    const { user, login } = useAuth();
 
     // Fallback if accessed directly without state
     const selectedPlan = location.state?.plan || {
@@ -76,16 +79,34 @@ function Checkout() {
         setFinalPrice(basePriceNum);
     };
 
-    const handleCompletePurchase = () => {
+    const handleCompletePurchase = async () => {
         setIsLoading(true);
-        // Simulate payment process
-        setTimeout(() => {
+
+        try {
+            // Grant chat access in the database
+            const response = await axios.post(API_ENDPOINTS.GRANT_ACCESS, {
+                user_id: user?.id
+            });
+
+            if (response.data.success) {
+                // Update local user session so chat works immediately
+                if (user) {
+                    const updatedUser = { ...user, has_chat_access: true };
+                    login(updatedUser); // updates localStorage + context
+                }
+                setCheckoutComplete(true);
+                setTimeout(() => {
+                    navigate('/chat');
+                }, 3000);
+            } else {
+                alert('Access grant failed. Please contact support.');
+            }
+        } catch (err) {
+            console.error('Payment/Access error:', err);
+            alert('Something went wrong. Please try again or contact support.');
+        } finally {
             setIsLoading(false);
-            setCheckoutComplete(true);
-            setTimeout(() => {
-                navigate('/chat');
-            }, 3000);
-        }, 2000);
+        }
     };
 
     if (checkoutComplete) {
