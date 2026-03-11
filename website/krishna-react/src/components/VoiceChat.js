@@ -202,7 +202,7 @@ function VoiceChat() {
             setIsSpeaking(false);
             setActiveMessageId(null);
         }
-    }, [stopAudio, isSpeaking, activeMessageId]);
+    }, [stopAudio, isSpeaking, activeMessageId, selectedLanguage]);
 
     const handleAudioUpload = async (audioBlob) => {
         setIsLoading(true);
@@ -302,7 +302,7 @@ function VoiceChat() {
             setIsLoading(false);
             setTranscript('');
         }
-    }, [speakText, user, sessionId]);
+    }, [speakText, user, sessionId, selectedLanguage]);
 
     // Start Journey Handler
     const handleStartJourney = async () => {
