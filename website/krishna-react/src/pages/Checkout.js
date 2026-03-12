@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { API_ENDPOINTS } from '../config/api';
 import './Checkout.css';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://talk-to-krishna-japan.onrender.com';
 
 function Checkout() {
     const location = useLocation();

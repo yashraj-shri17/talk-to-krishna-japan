@@ -17,8 +17,7 @@ services:
       - key: GROQ_API_KEY
         sync: false
       - key: FRONTEND_URL
-        # Remove trailing slash. Ex. https://example.vercel.app
-        sync: false
+        value: "https://talk-to-krishna-japan.vercel.app,https://talktokrishna.ai"
       - key: DB_PATH
         value: /data/users.db
       - key: FASTEMBED_CACHE_PATH

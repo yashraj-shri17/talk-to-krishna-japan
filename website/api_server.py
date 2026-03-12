@@ -161,11 +161,16 @@ frontend_url = os.getenv('FRONTEND_URL')
 allowed_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://talk-to-krishna-japan.vercel.app",
+    "https://talktokrishna.ai"
 ]
 
 if frontend_url:
-    normalized_url = frontend_url.rstrip('/')
-    allowed_origins.extend([normalized_url, f"{normalized_url}/"])
+    for url in frontend_url.split(','):
+        normalized_url = url.strip().rstrip('/')
+        if normalized_url:
+            allowed_origins.extend([normalized_url, f"{normalized_url}/"])
+
 
 CORS(app, origins=allowed_origins, supports_credentials=True)
 
