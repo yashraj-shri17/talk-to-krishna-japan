@@ -17,7 +17,7 @@ services:
       - key: GROQ_API_KEY
         sync: false
       - key: FRONTEND_URL
-        value: "https://talk-to-krishna-japan.vercel.app,https://talktokrishna.ai"
+        value: "https://talk-to-krishna-japan.vercel.app,https://talktokrishna.ai,https://www.talktokrishna.ai"
       - key: DB_PATH
         value: /data/users.db
       - key: FASTEMBED_CACHE_PATH

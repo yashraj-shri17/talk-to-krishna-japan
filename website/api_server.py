@@ -162,7 +162,8 @@ allowed_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://talk-to-krishna-japan.vercel.app",
-    "https://talktokrishna.ai"
+    "https://talktokrishna.ai",
+    "https://www.talktokrishna.ai"
 ]
 
 if frontend_url:
