@@ -254,126 +254,133 @@ Examples:
         # ── MODERN CONTEXT MAPPING (The Bridge) ──
         modern_mappings = {
             # ── CRISIS / SUICIDAL THOUGHTS ───────────────────────────────────
-            # Primary: 18.66 (surrender), 6.5 (uplift), 2.3 (Rise from weakness)
-            'suicide': ['18.66', '6.5', '2.3', '15.7', '9.22'],
-            'suicidal': ['18.66', '6.5', '2.3', '15.7', '9.22'],
-            'suicidal thoughts': ['18.66', '6.5', '2.3', '15.7', '9.22'],
-            'hopeless': ['18.66', '6.5', '2.3', '9.22'],
-            'give up': ['18.66', '2.3', '6.5', '2.14'],
-            'kill myself': ['18.66', '6.5', '15.7', '2.3'],
-            'end my life': ['18.66', '6.5', '15.7', '2.3'],
-            'want to die': ['18.66', '6.5', '15.7', '2.3'],
-            'end life': ['18.66', '6.5', '15.7', '2.3'],
+            'suicide': ['18.66', '6.5', '9.30', '15.7', '8.7', '2.3'],
+            'suicidal': ['18.66', '6.5', '9.30', '15.7', '8.7', '2.3'],
+            'suicidal thoughts': ['18.66', '6.5', '9.30', '15.7', '8.7', '2.3'],
+            'hopeless': ['9.22', '11.33', '18.66', '6.5', '10.10', '2.3'],
+            'give up': ['11.33', '9.22', '18.66', '8.7', '2.3', '6.5'],
+            'kill myself': ['18.66', '15.7', '9.30', '6.5', '2.3'],
+            'end my life': ['18.66', '15.7', '9.30', '6.5', '2.3'],
+            'want to die': ['18.66', '15.7', '9.30', '6.5', '2.3'],
+            'end life': ['18.66', '15.7', '9.30', '6.5', '2.3'],
 
             # ── HIGHER STUDIES / DREAMS BLOCKED BY PARENTS ───────────────────
-            # Primary: 18.63 (act as you decide — free will), 3.35 (follow own path),
-            #          6.1 (action defines a yogi), 18.47 (one's own dharma)
-            'australia': ['18.63', '6.1', '18.47', '3.35', '18.60'],
-            'abroad': ['18.63', '6.1', '18.47', '3.35', '18.60'],
-            'higher studies': ['18.63', '18.47', '3.35', '6.1', '18.60'],
-            'not allowing': ['18.63', '18.47', '6.9', '3.35', '18.60'],
-            'permission': ['18.63', '18.47', '3.35', '6.9'],
-            'allow': ['18.63', '18.47', '3.35', '6.9'],
+            'australia': ['3.35', '18.47', '18.63', '4.11', '12.15', '6.1'],
+            'abroad': ['3.35', '18.47', '18.63', '4.11', '12.15', '6.1'],
+            'higher studies': ['4.39', '18.47', '3.35', '10.4', '18.63'],
+            'not allowing': ['12.13', '12.15', '18.63', '3.35', '6.9', '17.15'],
+            'permission': ['12.15', '18.63', '3.35', '17.15', '6.9'],
+            'allow': ['12.15', '3.35', '18.63', '17.15', '6.9'],
 
             # ── BUSINESS LOSS / FINANCIAL DISTRESS ───────────────────────────
-            # Primary: 2.14 (endure pleasure & pain equally), 18.48 (persist in duty),
-            #          2.38 (act without being moved by results), 12.19 (equanimous)
-            'business': ['2.14', '18.48', '12.19', '2.38', '11.33'],
-            'loss': ['2.14', '18.48', '12.19', '2.38', '6.36'],
-            'business loss': ['2.14', '18.48', '2.38', '12.19'],
-            'financial': ['2.14', '18.48', '5.10', '16.13', '12.19'],
+            'business': ['5.10', '2.38', '9.27', '11.33', '18.48', '12.19'],
+            'loss': ['2.14', '5.10', '12.19', '2.38', '14.24', '18.48'],
+            'business loss': ['5.10', '2.14', '12.19', '2.38', '14.24', '18.48'],
+            'financial': ['9.22', '2.14', '12.19', '16.13', '5.10', '18.48'],
 
             # ── BOSS / WORKPLACE INJUSTICE / JOB LOSS ────────────────────────
-            # Primary: 3.8 (prescribed duty — keep working), 18.41 (duty by nature),
-            #          2.48 (equanimity in action), 6.4 (rises above self)
-            'boss': ['18.48', '3.8', '18.41', '2.48', '6.1'],
-            'fired': ['18.47', '3.8', '18.41', '18.48', '2.48'],
-            'lost job': ['18.47', '3.8', '18.41', '18.48', '2.48'],
-            'argument with boss': ['16.2', '3.8', '18.41', '6.1', '2.48'],
-            'conflict': ['16.2', '6.9', '3.8', '18.41', '2.48'],
-            'official': ['3.8', '18.41', '2.48', '6.4'],
-            'job': ['18.47', '3.8', '18.41', '2.48', '18.48'],
-            'work': ['18.47', '3.19', '3.8', '18.45', '18.41'],
+            'boss': ['12.15', '16.2', '11.33', '18.41', '3.8', '6.9'],
+            'fired': ['2.14', '5.10', '12.19', '18.47', '3.8', '2.48'],
+            'lost job': ['2.14', '9.22', '5.10', '18.47', '3.8', '2.48'],
+            'argument with boss': ['17.15', '16.2', '12.15', '11.33', '6.9', '3.8'],
+            'conflict': ['12.15', '16.2', '6.9', '17.15', '2.48'],
+            'official': ['3.8', '11.33', '18.41', '2.48', '5.10'],
+            'job': ['3.8', '9.27', '18.47', '5.10', '18.41', '2.48'],
+            'work': ['9.27', '3.19', '5.10', '18.45', '3.8', '18.47'],
 
             # ── SCHOOL EXAM FAILURE ──────────────────────────────────────────
-            # Primary: 2.14 (dualities of life — endure), 2.47 (do your duty),
-            #          6.5 (uplift yourself), 18.13 (all actions have factors)
-            'exam': ['18.13', '2.14', '6.5', '2.38'],
-            'fail': ['18.13', '2.14', '6.5', '2.38'],
-            'failed': ['18.13', '2.14', '6.5', '2.38'],
-            'school': ['18.13', '2.14', '6.5', '2.38'],
-            'result': ['18.11', '2.14', '1.33', '18.13'], # Removed 2.47 dominance
+            'exam': ['4.39', '6.5', '2.14', '2.38', '18.13', '10.4'],
+            'fail': ['2.14', '2.38', '6.5', '14.24', '18.13'],
+            'failed': ['2.14', '2.38', '6.5', '14.24', '18.13'],
+            'school': ['4.39', '10.4', '10.5', '6.5', '2.14', '18.13'],
+            'result': ['2.38', '5.10', '12.19', '2.14', '18.11', '1.33'],
 
             # ── UNSTABLE RELATIONSHIP / GIRLFRIEND / BOYFRIEND ───────────────
-            # Primary: 2.66 (no peace without steady mind), 12.13 (equanimous love),
-            #          5.22 (pleasure from senses is source of pain), 2.62 (attachment chain)
-            'girlfriend': ['2.66', '12.13', '5.22', '2.62', '2.63'],
-            'boyfriend': ['2.66', '12.13', '5.22', '2.62', '2.63'],
-            'unstable': ['2.66', '12.13', '5.22', '2.62', '6.35'],
-            'relationship': ['2.66', '12.13', '5.22', '2.62', '12.14'],
-            'breakup': ['2.62', '2.63', '2.66', '5.22', '18.54'],
-            'love': ['12.13', '12.14', '2.62', '2.63', '9.26'],
-            'lonely': ['6.30', '9.29', '18.54', '13.16'],
-            'cheat': ['3.37', '16.21', '16.23'],
+            'girlfriend': ['12.13', '2.62', '2.66', '5.22', '13.9', '15.5'],
+            'boyfriend': ['12.13', '2.62', '2.66', '5.22', '13.9', '15.5'],
+            'unstable': ['6.35', '12.15', '2.66', '2.62', '14.24'],
+            'relationship': ['12.13', '13.9', '12.14', '2.66', '5.22', '2.62'],
+            'breakup': ['12.15', '15.5', '5.22', '2.62', '2.63', '18.54'],
+            'love': ['9.26', '12.13', '12.14', '12.15', '2.62'],
+            'lonely': ['9.29', '15.7', '6.30', '12.15', '13.28', '18.54'],
+            'cheat': ['16.21', '16.2', '16.3', '3.37', '16.23'],
 
             # ── PERSONAL STRESS / MENTAL DISTURBANCE ─────────────────────────
-            # Primary: 2.71 (peace through desire-free mind), 6.35 (mind is restless),
-            #          12.15 (who does not cause distress), 2.56 (sage undisturbed)
-            'stress': ['2.71', '6.35', '12.15', '2.56', '2.14'],
-            'mental': ['2.71', '6.35', '12.15', '2.56', '6.26'],
-            'disturbed': ['2.71', '6.35', '2.56', '12.15', '2.14'],
-            'personal matters': ['2.71', '6.35', '2.56', '12.15'],
-            'anxiety': ['6.35', '2.56', '12.15', '2.71', '18.66'],
-            'tension': ['2.71', '6.35', '2.56', '12.15'],
+            'stress': ['12.15', '5.21', '6.35', '2.71', '17.16', '14.24'],
+            'mental': ['17.16', '6.35', '12.15', '2.71', '5.21', '2.56'],
+            'disturbed': ['6.35', '12.15', '5.21', '2.71', '17.16', '2.56'],
+            'personal matters': ['12.15', '5.21', '6.35', '17.16', '2.71'],
+            'anxiety': ['12.15', '6.35', '9.22', '18.66', '5.21', '2.56'],
+            'tension': ['12.15', '6.35', '5.21', '17.16', '2.71'],
 
             # ── PURPOSE OF LIFE / COMPETITIVE WORLD ──────────────────────────
-            # Primary: 3.25 (act for the benefit of world — lokasamgraha),
-            #          3.19 (act without attachment), 4.11 (all paths lead to Me),
-            #          18.63 (do what you judge right)
-            'purpose': ['3.25', '18.63', '3.19', '4.11', '5.10'],
-            'purpose in life': ['3.25', '18.63', '3.19', '4.11', '5.10'],
-            'competitive': ['3.25', '16.2', '3.19', '4.11', '5.10'],
-            'better than others': ['16.2', '3.25', '3.19', '18.54', '4.11'],
-            'meaning': ['3.25', '18.63', '3.19', '4.11', '5.10'],
+            'purpose': ['3.25', '11.33', '9.27', '4.11', '18.63', '3.19'],
+            'purpose in life': ['3.25', '11.33', '9.27', '4.11', '18.63', '3.19'],
+            'competitive': ['16.2', '12.15', '11.33', '3.25', '4.11', '5.10'],
+            'better than others': ['16.2', '12.15', '16.3', '15.5', '3.25', '18.54'],
+            'meaning': ['9.27', '11.33', '4.11', '3.25', '18.63', '5.10'],
 
             # ── PARENT / FAMILY CONFLICTS (VIEWS / GENERATION GAP) ───────────
-            # Primary: 6.9 (equanimous toward all — friend, foe, parent),
-            #          16.2 (fearlessness, non-anger — divine qualities),
-            #          12.13 (no hatred — benevolent to all)
-            'mother': ['6.9', '16.2', '12.13', '15.7', '18.47'],
-            'father': ['6.9', '16.2', '12.13', '15.7', '18.47'],
-            'mummy': ['6.9', '16.2', '12.13', '15.7', '18.47'],
-            'papa': ['6.9', '16.2', '12.13', '15.7', '18.47'],
-            'parents': ['6.9', '16.2', '12.13', '15.7', '18.47'],
-            'worsening': ['6.9', '16.2', '12.13', '18.54', '11.33'],
-            'differences': ['6.9', '16.2', '12.13', '18.54', '11.33'],
-            'family refuse': ['6.9', '16.2', '3.35', '18.63', '6.1'],
-            'family against': ['6.9', '16.2', '3.35', '18.63', '6.1'],
-            'family conflict': ['6.9', '16.2', '12.13', '6.1', '18.63'],
+            'mother': ['12.13', '6.9', '17.15', '16.2', '15.7'],
+            'father': ['12.13', '6.9', '17.15', '16.2', '15.7'],
+            'mummy': ['12.13', '6.9', '17.15', '16.2', '15.7'],
+            'papa': ['12.13', '6.9', '17.15', '16.2', '15.7'],
+            'parents': ['12.13', '6.9', '17.15', '16.2', '15.7'],
+            'worsening': ['12.15', '17.15', '6.9', '16.2', '11.33'],
+            'differences': ['13.28', '12.15', '17.15', '6.9', '16.2'],
+            'family refuse': ['12.15', '6.9', '17.15', '16.2', '3.35'],
+            'family against': ['12.15', '6.9', '17.15', '16.2', '3.35'],
+            'family conflict': ['12.15', '17.15', '6.9', '16.2', '12.13', '6.1'],
 
-            # Primary: 2.13 (changing garments), 2.25 (unperceivable), 2.11 (not to grieve)
-            'grandmother': ['2.13', '2.25', '2.11', '2.22', '9.22'],
-            'grandma': ['2.13', '2.25', '2.11', '2.22', '9.22'],
-            'passed away': ['2.13', '2.25', '2.11', '2.22', '9.22'],
-            'death': ['2.13', '2.25', '2.11', '2.22', '9.22'],
-            'died': ['2.13', '2.25', '2.11', '2.22', '9.22'],
-            'grief': ['2.11', '2.13', '2.25', '2.27', '9.22'],
-            'depressed': ['2.13', '6.5', '2.11', '18.66', '2.14'],
+            # ── DEATH / GRIEF ────────────────────────────────────────────────
+            'grandmother': ['8.5', '8.7', '2.13', '2.25', '2.11', '9.22'],
+            'grandma': ['8.5', '8.7', '2.13', '2.25', '2.11', '9.22'],
+            'passed away': ['8.5', '8.7', '2.13', '2.25', '2.11', '9.22'],
+            'death': ['8.5', '8.6', '8.7', '2.13', '2.25', '2.11'],
+            'died': ['8.5', '8.7', '2.13', '2.25', '2.11', '9.22'],
+            'grief': ['12.15', '5.22', '2.11', '2.13', '2.25', '9.22'],
+            'depressed': ['6.5', '12.15', '5.21', '2.13', '2.11', '18.66'],
 
             # ── WORKPLACE INJUSTICE / COLLEAGUES ─────────────────────────────
-            # Primary: 3.19 (do own duty without attachment), 18.41 (duty by nature),
-            #          5.7 (karma yogi — acts without being tainted),
-            #          16.2 (fearlessness, purity of heart — divine qualities)
-            'colleagues': ['18.41', '3.19', '16.2', '5.7', '3.8'],
-            'workload': ['18.41', '3.19', '3.8', '5.7', '18.45'], 
-            'avoid work': ['18.41', '16.2', '3.19', '3.8', '5.7'],
-            'workplace': ['18.41', '16.2', '3.19', '3.8', '5.7'],
+            'colleagues': ['5.7', '12.13', '13.28', '18.41', '3.19', '16.2'],
+            'workload': ['9.27', '5.10', '18.41', '3.19', '3.8', '18.45'], 
+            'avoid work': ['5.7', '18.41', '16.2', '3.19', '3.8'],
+            'workplace': ['5.10', '12.15', '5.7', '18.41', '16.2', '3.19'],
 
             # ── MENTAL HEALTH (general) ───────────────────────────────────────
-            'depression': ['6.5', '2.3', '6.6', '2.14', '18.66'],
-            'confused': ['2.7', '18.61', '18.66', '18.73'],
-            'anger': ['2.63', '16.21', '3.37', '3.38'],
-            'money': ['2.14', '18.38', '17.20', '16.13'],
+            'depression': ['5.21', '6.5', '15.7', '14.24', '9.22', '6.6'],
+            'confused': ['4.38', '10.4', '18.61', '18.73', '3.30'],
+            'anger': ['16.21', '16.2', '16.1-3', '3.37', '5.26'],
+            'money': ['12.19', '16.13', '14.24', '17.20', '18.38', '3.12'],
+
+            # ── SELF-DOUBT / CONFIDENCE / COMPARISON ─────────────────────────
+            'confidence': ['4.39', '11.33', '10.41', '6.5', '18.43', '16.2'],
+            'self doubt': ['4.39', '4.40', '6.5', '11.33', '18.43', '16.2'],
+            'comparison': ['13.28', '15.7', '12.18', '6.32', '16.2', '3.35'],
+            'jealous': ['16.2', '16.21', '12.13', '6.32', '3.37'],
+            'jealousy': ['16.2', '16.21', '12.13', '6.32', '3.37'],
+            'inferior': ['15.7', '10.41', '6.5', '18.43', '3.35', '16.2'],
+
+            # ── SPIRITUAL GROWTH / MEDITATION / INNER PEACE ──────────────────
+            'meditation': ['6.10', '6.24', '8.7', '6.19', '5.27', '12.8'],
+            'focus': ['6.26', '8.7', '12.8', '6.35', '12.9'],
+            'peace': ['5.29', '12.15', '5.21', '17.16', '6.15'],
+            'happiness': ['5.21', '5.29', '12.18', '14.24', '18.54'],
+            'detachment': ['5.10', '13.9', '12.19', '15.5', '14.24', '4.20'],
+            'surrender': ['9.27', '9.22', '12.6', '18.66', '18.62'],
+
+            # ── FAITH / TRUST / GOD ──────────────────────────────────────────
+            'faith': ['4.39', '9.22', '12.2', '7.16', '9.29'],
+            'trust': ['9.22', '18.66', '12.6', '7.16', '4.11'],
+            'pray': ['9.26', '9.27', '12.6', '7.16', '9.22'],
+
+            # ── NIGHT / SLEEP / NIGHTMARE ─────────────────────────────────────
+            'sleep': ['6.17', '6.16', '5.21', '14.8', '17.16'],
+            'nightmare': ['8.7', '12.15', '6.17', '5.21', '9.22'],
+
+            # ── HEALTH / BODY ─────────────────────────────────────────────────
+            'sick': ['13.20', '14.24', '5.11', '6.17', '14.7'],
+            'pain': ['12.15', '5.29', '13.20', '14.24', '12.18'],
         }
 
         # Check for modern triggers with word boundaries to avoid partial matches (e.g., 'mother' in 'grandmother')
@@ -533,7 +540,8 @@ Examples:
         idxs = np.argsort(sims)[::-1][:top_k]
         return [(int(i), float(sims[i])) for i in idxs]
 
-    def _rerank_with_llm(self, query: str, rewritten: str, candidates: List[Dict]) -> List[Dict]:
+    def _rerank_with_llm(self, query: str, rewritten: str, candidates: List[Dict],
+                         recent_shloka_ids: List[str] = None) -> List[Dict]:
         """
         Use LLM to rerank top candidates based on relevance to the specific problem.
         This provides a 'second opinion' to fix vector search blind spots.
@@ -544,8 +552,23 @@ Examples:
         try:
             # Format candidates for LLM review
             options_text = ""
-            for i, c in enumerate(candidates, 1):
+            # Only provide the top 10 unique candidates to LLM to avoid overwhelming it with bad options
+            # If any shloka has a drastically negative score (meaning it was heavily penalized for repeating), skip it entirely!
+            filtered_candidates = [c for c in candidates if c.get('score', 0) > -20][:10]
+            if not filtered_candidates:
+                filtered_candidates = candidates[:5] # Fallback if everything was penalized
+
+            for i, c in enumerate(filtered_candidates, 1):
                 options_text += f"Option {i} (ID {c['id']}): {c['meaning_english'][:300]}\n"
+
+            # Build avoidance instruction from recent history
+            recent_ids = recent_shloka_ids or []
+            recent_chapters = list({sid.split('.')[0] for sid in recent_ids if '.' in sid})
+            avoid_clause = ""
+            if recent_chapters:
+                avoid_clause += (
+                    f"\n   - AVOID VERSES FROM THESE CHAPTERS if possible (user just heard them): {', '.join(recent_chapters)}."
+                )
             
             prompt = f"""You are a spiritual expert. Select the most appropriate Bhagavad Gita verse (ONE) to solve the user's situation.
             
@@ -556,15 +579,12 @@ Available Shlokas (Ranked by engine):
 
 Task:
 1. Identify the ONE verse that MOST SPECIFICALLY addresses the core problem.
-2. Order them from Best to Worst. 
-4. STRICT DIVERSITY: 
-   - DO NOT pick 2.47, 18.66, or 2.20 unless they are the DIRECT mapping or the situation is an absolute crisis.
-   - For Workplace Workload problems: USE 18.41 or 3.19.
-   - For Career Purpose/Competition: USE 3.25 or 18.63.
-   - For Suicidal Thoughts: USE 18.66 or 6.5 (NEVER pick 2.20 here to avoid overlap with physical death).
-   - For Physical Death (Grandmother): USE 2.13 or 2.25 or 2.11.
-   - For Parents/Family: USE 6.9 or 16.2.
-5. Return ONLY a list of the IDs in JSON format.
+2. Order them from Best to Worst.
+3. STRICT DIVERSITY & EXPLORATION RULES:
+   - CHAPTER 2 PENALTY: Chapter 2 is overused. ONLY pick a Chapter 2 verse if absolutely NO OTHER verse gracefully fits. 
+   - AVOID 2.47 (unless explicitly about fruits of action), 2.20 (unless physical death), 18.66 (unless deep crisis/surrender).
+   - EXPLORE the Gita: Given equal relevance, prefer verses from less common chapters (like Chapters 4, 5, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17).{avoid_clause}
+4. Return ONLY a list of the IDs in JSON format.
 
 Output Format: ["ID1", "ID2", "ID3", ...]"""
             
@@ -614,7 +634,8 @@ Output Format: ["ID1", "ID2", "ID3", ...]"""
             logger.warning(f"Reranking failed: {e}")
             return candidates
 
-    def search(self, query: str, method: str = "hybrid", top_k: int = 10, understanding: Dict = None, **kwargs) -> List[Dict[str, Any]]:
+    def search(self, query: str, method: str = "hybrid", top_k: int = 10, understanding: Dict = None,
+               recent_shloka_ids: List[str] = None, **kwargs) -> List[Dict[str, Any]]:
         """
         Multi-Perspective Search Strategy to find the 'Sahi Shloka'.
         """
@@ -709,9 +730,65 @@ Output Format: ["ID1", "ID2", "ID3", ...]"""
                 initial_results.append(shloka_copy)
                 seen_ids.add(sid)
 
+        # ── UNIVERSAL CHAPTER DIVERSITY CAP (applies to ALL chapters) ────────────
+        # Problem: Any high-frequency chapter (Ch2, Ch18, Ch6 etc.) can flood the
+        # 15-item pool when multiple keyword mappings fire for the same chapter.
+        # Fix: Sort by score first, then apply a PROGRESSIVE OVER-REPRESENTATION
+        # PENALTY to every shloka beyond the Nth from the same chapter.
+        # This caps every chapter — not just Ch2 — at MAX_PER_CHAPTER slots.
+        MAX_PER_CHAPTER = 2          # Max shlokas per chapter allowed in pool
+        OVERREP_PENALTY = 20.0       # Penalty per extra shloka from same chapter
+        CH2_EXTRA_PENALTY = 10.0     # Ch2 additional bias (it also dominates semantic search)
+
+        # Sort descending so highest-score shloka from each chapter is kept first
+        initial_results.sort(key=lambda x: x.get('score', 0), reverse=True)
+
+        chapter_count: dict = {}
+        for item in initial_results:
+            ch = item.get('chapter')
+            ch_key = str(ch)
+            chapter_count[ch_key] = chapter_count.get(ch_key, 0) + 1
+            rank_in_chapter = chapter_count[ch_key]  # 1 = first seen, 2 = second, …
+
+            if rank_in_chapter > MAX_PER_CHAPTER:
+                # Each extra slot from this chapter gets a compounding penalty
+                extra = rank_in_chapter - MAX_PER_CHAPTER
+                penalty = OVERREP_PENALTY * extra
+                item['score'] = item.get('score', 0) - penalty
+                logger.info(
+                    f"Over-rep penalty (ch{ch_key} slot {rank_in_chapter}): "
+                    f"{item['id']} score -> {item.get('score', 0):.1f}"
+                )
+
+            # Ch2 additionally dominates cosine similarity due to its length/richness
+            # so keep its extra penalty even if it's within the per-chapter cap
+            if ch == 2 and item['id'] not in boosted_shlokas:
+                item['score'] = item.get('score', 0) - CH2_EXTRA_PENALTY
+                logger.info(f"Ch2 extra semantic-bias penalty: {item['id']} -> {item['score']:.1f}")
+
+        # ── RECENT HISTORY PENALTY: Avoid shloka & chapter repeats ─────────────
+        # Penalise shlokas (and strongly penalise same chapters) used in last 5 convs.
+        recent_ids = recent_shloka_ids or []
+        recent_chapters = {sid.split('.')[0] for sid in recent_ids if '.' in sid}
+        SHLOKA_REPEAT_PENALTY = 35.0   # Hard block for same shloka as before
+        CHAPTER_REPEAT_PENALTY = 12.0  # Strong penalty for same chapter as before
+        for item in initial_results:
+            sid = item['id']
+            ch  = str(item.get('chapter', ''))
+            if sid in recent_ids:
+                item['score'] = item.get('score', 0) - SHLOKA_REPEAT_PENALTY
+                logger.info(f"Recent-shloka penalty: {sid} (used in last {len(recent_ids)} convs)")
+            elif ch in recent_chapters:
+                item['score'] = item.get('score', 0) - CHAPTER_REPEAT_PENALTY
+                logger.info(f"Recent-chapter penalty: {sid} ch{ch} (chapter used in last {len(recent_ids)} convs)")
+
+        # Re-sort after all penalties applied
+        initial_results.sort(key=lambda x: x.get('score', 0), reverse=True)
+
         # 6. LLM Reranking (The Final Judge)
         # Rerank the diverse top 15 to find the true best 5
-        final_results = self._rerank_with_llm(query, rewritten_query, initial_results)
+        final_results = self._rerank_with_llm(query, rewritten_query, initial_results,
+                                               recent_shloka_ids=recent_ids)
             
         logger.info(f"Returning {min(len(final_results), top_k)} matches after refinement.")
         
@@ -1034,7 +1111,8 @@ Output Format: ["ID1", "ID2", "ID3", ...]"""
         logger.info(f"✅ Allowing query (default pass): '{query}'")
         return True, ""
 
-    def search_with_llm(self, query: str, conversation_history: List[Dict] = None, language: str = 'japanese', **kwargs) -> Dict[str, Any]:
+    def search_with_llm(self, query: str, conversation_history: List[Dict] = None, language: str = 'japanese',
+                         recent_shloka_ids: List[str] = None, **kwargs) -> Dict[str, Any]:
         """End-to-end RAG answer with conversation context."""
         
         # 0. Check for Greeting
@@ -1077,7 +1155,8 @@ Output Format: ["ID1", "ID2", "ID3", ...]"""
             }
 
         # 1. Retrieve - Increased to 5 to give LLM better options
-        shlokas = self.search(query, top_k=5, understanding=understanding)
+        shlokas = self.search(query, top_k=5, understanding=understanding,
+                              recent_shloka_ids=recent_shloka_ids or [])
         
         # Log retrieved shlokas for debugging
         logger.info(f"📖 Retrieved {len(shlokas)} shlokas for query: '{query}'")

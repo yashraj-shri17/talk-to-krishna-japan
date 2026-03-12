@@ -342,14 +342,40 @@ def ask_question():
         # Get user's conversation history if logged in
         conversation_history = []
         if user_id:
-            # Filter history by session_id if provided
+            # Fetch last 5 conversations for diversity filtering (avoid repeat shlokas/chapters)
             conversation_history = get_user_history(user_id, session_id=session_id, limit=5)
             print(f"Retrieved {len(conversation_history)} previous conversations for user {user_id} (Session: {session_id})")
         
-        # Get answer from GitaAPI with NO conversation context (1 Q = 1 ans requested by user)
+        # Extract recently used shloka IDs for the diversity filter
+        # This prevents the same shloka or chapter from repeating across consecutive answers
+        recent_shloka_ids = []
+        for conv in conversation_history:
+            # Each conversation stores the chosen shloka in the answer text.
+            # We re-parse it here to get the shloka ID.
+            ans = conv.get('answer', '')
+            import re as _re
+            m = _re.search(
+                r'(?:Chapter\s*(\d+)\s*Shloka\s*(\d+)|第(\d+)章\s*第(\d+)節)',
+                ans, _re.IGNORECASE
+            )
+            if m:
+                ch  = m.group(1) or m.group(3)
+                ver = m.group(2) or m.group(4)
+                if ch and ver:
+                    recent_shloka_ids.append(f"{ch}.{ver}")
+        
+        if recent_shloka_ids:
+            print(f"Recent shloka IDs used (will be penalised): {recent_shloka_ids}")
+
+        # Get answer from GitaAPI — pass full conversation history + recent IDs for diversity
         import time
         start_time = time.time()
-        result = gita_api.search_with_llm(question, conversation_history=[], language=language)
+        result = gita_api.search_with_llm(
+            question,
+            conversation_history=conversation_history,
+            language=language,
+            recent_shloka_ids=recent_shloka_ids
+        )
         llm_time = time.time() - start_time
         
         answer_text = result.get('answer')
